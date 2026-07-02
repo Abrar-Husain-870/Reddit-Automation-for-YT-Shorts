@@ -11,6 +11,9 @@ from pathlib import Path
 
 import config
 
+# All subprocess calls get a timeout to prevent indefinite hangs
+SUBPROCESS_TIMEOUT = 300  # 5 minutes per ffmpeg operation
+
 
 def _get_video_duration(path: Path) -> float:
     """Get duration in seconds using ffprobe."""
@@ -20,7 +23,7 @@ def _get_video_duration(path: Path) -> float:
         "-of", "default=noprint_wrappers=1:nokey=1",
         str(path),
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT)
     return float(result.stdout.strip())
 
 
@@ -34,7 +37,7 @@ def _detect_scenes(path: Path, threshold: float = 0.3) -> list[float]:
         "-filter:v", f"select='gt(scene,{threshold})',showinfo",
         "-f", "null", "-",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT)
 
     timestamps = []
     for line in result.stderr.splitlines():
@@ -89,7 +92,11 @@ def _split_into_clips(
             "-b:a", "128k",
             str(out_path),
         ]
-        subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            print(f"   ⚠ Clip {i:03d} timed out, skipping")
+            continue
 
         if out_path.exists() and out_path.stat().st_size > 100_000:
             clips.append(out_path)
@@ -132,11 +139,19 @@ def process_all_raw() -> list[Path]:
     all_clips: list[Path] = []
     for video in raw_videos:
         print(f"\n🎞 Processing: {video.name}")
-        dur = _get_video_duration(video)
+        try:
+            dur = _get_video_duration(video)
+        except (subprocess.TimeoutExpired, ValueError) as e:
+            print(f"   ⚠ Could not get duration for {video.name}: {e}")
+            continue
         print(f"   Duration: {dur:.1f}s")
 
         print(f"   🔍 Detecting scenes (threshold={config.SCENE_THRESHOLD})…")
-        scenes = _detect_scenes(video, config.SCENE_THRESHOLD)
+        try:
+            scenes = _detect_scenes(video, config.SCENE_THRESHOLD)
+        except subprocess.TimeoutExpired:
+            print(f"   ⚠ Scene detection timed out for {video.name}, skipping")
+            continue
         print(f"   Found {len(scenes)} scene changes")
 
         clips = _split_into_clips(video, scenes, dur)

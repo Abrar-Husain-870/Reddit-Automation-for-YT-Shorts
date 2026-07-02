@@ -2,6 +2,7 @@
 Generate voiceover audio using Edge TTS (free, no API key needed).
 Synthesizes the brainrot narration script into an audio file.
 Returns duration and sentence-level timings for captions.
+All async/subprocess calls have timeouts to prevent indefinite hangs.
 """
 from __future__ import annotations
 
@@ -12,6 +13,10 @@ from pathlib import Path
 from typing import TypedDict
 
 import config
+
+# Timeouts
+TTS_TIMEOUT = 120  # 2 minutes for TTS synthesis
+FFPROBE_TIMEOUT = 30  # 30 seconds for ffprobe
 
 
 class SentenceTiming(TypedDict):
@@ -30,6 +35,7 @@ def _ffprobe_duration(path: Path) -> float:
             str(path),
         ],
         text=True,
+        timeout=FFPROBE_TIMEOUT,
     ).strip()
     return float(out)
 
@@ -84,7 +90,22 @@ def synthesize_brainrot_voiceover(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"🔊 Edge TTS: synthesizing voiceover ({voice})…")
-    sentences = asyncio.run(_synthesize_with_timing(narration, output_path, voice))
+    try:
+        sentences = asyncio.run(
+            asyncio.wait_for(
+                _synthesize_with_timing(narration, output_path, voice),
+                timeout=TTS_TIMEOUT,
+            )
+        )
+    except asyncio.TimeoutError:
+        print(f"   ⚠ TTS synthesis timed out after {TTS_TIMEOUT}s")
+        # Check if partial audio was written
+        if output_path.exists() and output_path.stat().st_size > 1000:
+            print("   ⚠ Partial audio found, using it anyway")
+            sentences = []
+        else:
+            print("   ❌ No audio generated — cannot proceed")
+            sys.exit(1)
 
     total_dur = _ffprobe_duration(output_path)
     print(f"   Audio: {total_dur:.1f}s ({len(sentences)} sentences)")

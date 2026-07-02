@@ -15,11 +15,15 @@ from pathlib import Path
 
 import config
 
+# Timeout for ffmpeg render operations (5 min for normal, 10 min for high-quality)
+RENDER_TIMEOUT = 600
+FFPROBE_TIMEOUT = 60
+
 
 def _get_dur(path: Path) -> float:
     r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                         "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, timeout=FFPROBE_TIMEOUT)
     return float(r.stdout.strip())
 
 
@@ -161,7 +165,11 @@ def render(
         str(output_path),
     ]
     print("   Lanczos → unsharp → captions → 12Mbps")
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=RENDER_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        print("   ⚠ High-quality render timed out, falling back to medium preset")
+        r = subprocess.CompletedProcess(cmd, 1, "", "")
 
     if r.returncode != 0:
         cmd2 = [
@@ -175,7 +183,22 @@ def render(
             "-shortest", "-movflags", "+faststart",
             str(output_path),
         ]
-        subprocess.run(cmd2, check=True)
+        try:
+            subprocess.run(cmd2, check=True, timeout=RENDER_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            print("   ⚠ Fallback render also timed out, trying fast preset")
+            cmd3 = [
+                "ffmpeg", "-y",
+                "-i", str(clip_path), "-i", str(audio_path),
+                "-filter_complex",
+                f"[0:v]scale=1080:1920:flags=lanczos:force_original_aspect_ratio=increase,crop=1080:1920,subtitles={ass_filter}[v]",
+                "-map", "[v]", "-map", "1:a",
+                "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+                "-b:v", "6M", "-c:a", "aac", "-b:a", "192k",
+                "-shortest", "-movflags", "+faststart",
+                str(output_path),
+            ]
+            subprocess.run(cmd3, check=True, timeout=RENDER_TIMEOUT)
 
     if output_path.exists():
         mb = output_path.stat().st_size / 1_048_576

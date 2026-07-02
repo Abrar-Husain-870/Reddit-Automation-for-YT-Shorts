@@ -62,15 +62,27 @@ def generate_brainrot_script(
     best_wc = 0
 
     for attempt in range(2):
-        completion = client.chat.completions.create(
-            model=config.GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": USER_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.95,
-            max_tokens=800,
-        )
+        try:
+            completion = client.chat.completions.create(
+                model=config.GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": USER_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.95,
+                max_tokens=800,
+                timeout=30,  # 30 second timeout for Groq API
+            )
+        except Exception as e:
+            print(f"   ⚠ Groq API error (attempt {attempt+1}): {e}")
+            if attempt == 1:
+                # Use fallback narration
+                best_narration = "When the GTA V physics engine decides to absolutely DESTROY your day 💀 Like bro I was just driving NORMAL and then BOOM a trash truck spawns on my head HAHAHA this game is PEAK chaos I love it 😂🚗💥"
+                best_title = "GTA V BRAINROT 🔥"
+                best_wc = len(best_narration.split())
+                print(f"   ⚠ Using fallback narration ({best_wc} words)")
+                break
+            continue
 
         response = completion.choices[0].message.content.strip()
 
