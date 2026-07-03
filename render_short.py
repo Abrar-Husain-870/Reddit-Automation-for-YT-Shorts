@@ -136,69 +136,58 @@ def render(
         c = colors[i % len(colors)]
         ass += f"Dialogue: 0,{_t(ts)},{_t(te)},Default,,0,0,0,,{{\\\\c{c}\\an5}}{w}\n"
 
-    ass_path = Path(tempfile.gettempdir()) / "gta_caps.ass"
+    # Write ASS to output dir
+    ass_path = config.OUTPUT_DIR / "captions.ass"
     ass_path.write_text(ass, encoding="utf-8")
 
     # ── Render ──
-    # Use OS-independent temp path; on Windows escape the colon in filter
-    ass_str = str(ass_path)
-    if os.name == "nt":  # Windows
-        ass_filter = ass_str.replace(":", "\\\\:")
-    else:  # Linux/Mac
-        ass_filter = ass_str
-    cmd = [
-        "ffmpeg", "-y",
-        "-i", str(clip_path),
-        "-i", str(audio_path),
-        "-filter_complex",
-        f"[0:v]"
-        f"scale=1080:1920:flags=lanczos:force_original_aspect_ratio=increase,"
-        f"crop=1080:1920,"
-        f"unsharp=5:5:1.0:5:5:0.0,"
-        f"subtitles={ass_filter}[v]",
-        "-map", "[v]", "-map", "1:a",
-        "-c:v", "libx264", "-preset", "slow", "-crf", "16",
-        "-b:v", "12M", "-maxrate", "16M", "-bufsize", "20M",
-        "-profile:v", "high", "-level", "4.2",
-        "-c:a", "aac", "-b:a", "256k", "-ar", "48000",
-        "-shortest", "-movflags", "+faststart",
-        str(output_path),
-    ]
-    print("   Lanczos → unsharp → captions → 12Mbps")
-    try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=RENDER_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        print("   ⚠ High-quality render timed out, falling back to medium preset")
-        r = subprocess.CompletedProcess(cmd, 1, "", "")
+    # Use relative path to avoid colon-in-drive-letter issues in ffmpeg filter graph
+    # (e.g. D:/path/... would be parsed as option separator by subtitles filter)
+    ass_safe = "data/output/captions.ass"
 
-    if r.returncode != 0:
-        cmd2 = [
+    def _build_cmd(preset: str, crf: str, bv: str, ba: str) -> list[str]:
+        return [
             "ffmpeg", "-y",
-            "-i", str(clip_path), "-i", str(audio_path),
+            "-i", str(clip_path),
+            "-i", str(audio_path),
             "-filter_complex",
-            f"[0:v]scale=1080:1920:flags=lanczos:force_original_aspect_ratio=increase,crop=1080:1920,subtitles={ass_filter}[v]",
+            f"[0:v]"
+            f"scale=1080:1920:flags=lanczos:force_original_aspect_ratio=increase,"
+            f"crop=1080:1920,"
+            f"unsharp=5:5:1.0:5:5:0.0,"
+            f"subtitles={ass_safe}[v]",
             "-map", "[v]", "-map", "1:a",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "16",
-            "-b:v", "10M", "-c:a", "aac", "-b:a", "256k",
+            "-c:v", "libx264", "-preset", preset, "-crf", crf,
+            "-b:v", bv, "-maxrate", bv, "-bufsize", str(int(bv.rstrip("M")) * 2) + "M",
+            "-profile:v", "high", "-level", "4.2",
+            "-c:a", "aac", "-b:a", ba, "-ar", "48000",
             "-shortest", "-movflags", "+faststart",
             str(output_path),
         ]
+
+    # Try high quality first, fall back to faster presets on timeout/failure
+    presets = [
+        ("slow", "16", "12M", "256k"),
+        ("medium", "16", "10M", "256k"),
+        ("fast", "20", "6M", "192k"),
+    ]
+
+    for preset, crf, bv, ba in presets:
+        cmd = _build_cmd(preset, crf, bv, ba)
+        print(f"   Trying {preset} preset ({bv}, crf {crf})…")
         try:
-            subprocess.run(cmd2, check=True, timeout=RENDER_TIMEOUT)
+            # Use subprocess.DEVNULL to avoid pipe buffer deadlock with ffmpeg's stderr
+            r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=RENDER_TIMEOUT)
         except subprocess.TimeoutExpired:
-            print("   ⚠ Fallback render also timed out, trying fast preset")
-            cmd3 = [
-                "ffmpeg", "-y",
-                "-i", str(clip_path), "-i", str(audio_path),
-                "-filter_complex",
-                f"[0:v]scale=1080:1920:flags=lanczos:force_original_aspect_ratio=increase,crop=1080:1920,subtitles={ass_filter}[v]",
-                "-map", "[v]", "-map", "1:a",
-                "-c:v", "libx264", "-preset", "fast", "-crf", "20",
-                "-b:v", "6M", "-c:a", "aac", "-b:a", "192k",
-                "-shortest", "-movflags", "+faststart",
-                str(output_path),
-            ]
-            subprocess.run(cmd3, check=True, timeout=RENDER_TIMEOUT)
+            print(f"   ⚠ {preset} preset timed out")
+            continue
+        if r.returncode == 0:
+            break
+        else:
+            print(f"   ⚠ {preset} preset failed (code {r.returncode})")
+    else:
+        print("❌ All render presets failed")
+        sys.exit(1)
 
     if output_path.exists():
         mb = output_path.stat().st_size / 1_048_576
