@@ -1,6 +1,7 @@
 """
 Upload rendered GTA VI brainrot shorts to YouTube Shorts.
-Reuses the same OAuth2 pattern as the existing YouTube bot.
+Uses OAuth2 refresh token from env vars directly (no browser required).
+All API calls have timeouts to prevent indefinite hangs on CI.
 """
 from __future__ import annotations
 
@@ -19,6 +20,8 @@ HASHTAGS_POOL = [
     "#GrandTheftAuto", "#GamingVideos", "#GTA6Edit", "#GTA6Clip", "#ViralGaming",
 ]
 
+YOUTUBE_API_TIMEOUT = 120  # 2 minute timeout for API calls
+
 
 def _pick_hashtags(n: int = 5) -> str:
     """Pick n random hashtags."""
@@ -26,10 +29,13 @@ def _pick_hashtags(n: int = 5) -> str:
 
 
 def _get_authenticated_service():
-    """Build YouTube API client with OAuth2."""
+    """
+    Build YouTube API client with OAuth2 using refresh token from env.
+    Does NOT open a browser — uses the refresh token directly.
+    Falls back to token file cache if available.
+    """
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
 
@@ -38,34 +44,47 @@ def _get_authenticated_service():
     creds = None
     token_file = config.CACHE_DIR / "yt_token.json"
 
+    # Try loading cached token file first
     if token_file.exists():
-        creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
+        try:
+            creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
+        except Exception as e:
+            print(f"   ⚠ Could not load cached token: {e}")
+            creds = None
+
+    # If we have a refresh token in env, use it directly
+    if (not creds or not creds.valid) and config.YT_REFRESH_TOKEN:
+        print("   Using refresh token from environment...")
+        creds = Credentials(
+            token=None,
+            refresh_token=config.YT_REFRESH_TOKEN,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=config.YT_CLIENT_ID,
+            client_secret=config.YT_CLIENT_SECRET,
+            scopes=SCOPES,
+        )
+
+    # Refresh the token if expired
+    if creds and not creds.valid:
+        try:
+            creds.refresh(Request())
+            print("   ✅ Token refreshed")
+        except Exception as e:
+            print(f"   ⚠ Token refresh failed: {e}")
+            creds = None
 
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not config.YT_CLIENT_ID or not config.YT_CLIENT_SECRET:
-                print("❌ YT_CLIENT_ID / YT_CLIENT_SECRET_VALUE not set")
-                sys.exit(1)
+        print("❌ Could not authenticate with YouTube. Check YT_REFRESH_TOKEN in .env")
+        print("   Run 'python get_refresh_token.py' to generate a new token")
+        return None
 
-            client_config = {
-                "installed": {
-                    "client_id": config.YT_CLIENT_ID,
-                    "client_secret": config.YT_CLIENT_SECRET,
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": ["http://localhost"],
-                }
-            }
-            flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            creds = flow.run_local_server(port=0, open_browser=False)
-
-        # Save token for next time
+    # Save token for next run
+    try:
         token_file.parent.mkdir(parents=True, exist_ok=True)
         with open(token_file, "w") as f:
             f.write(creds.to_json())
-        print(f"   💾 Token saved to {token_file}")
+    except Exception as e:
+        print(f"   ⚠ Could not save token: {e}")
 
     return build("youtube", "v3", credentials=creds)
 
@@ -86,14 +105,14 @@ def upload_short(
         privacy: public / unlisted / private.
     
     Returns:
-        YouTube video ID.
+        YouTube video ID, or empty string on failure.
     """
     from googleapiclient.http import MediaFileUpload
     from googleapiclient.errors import HttpError
 
     if not video_path.exists():
         print(f"❌ Video not found: {video_path}")
-        sys.exit(1)
+        return ""
 
     # Build description with hashtags
     desc = description.strip()
@@ -106,6 +125,9 @@ def upload_short(
     print(f"   Privacy: {privacy}")
 
     youtube = _get_authenticated_service()
+    if not youtube:
+        print("⚠ YouTube authentication failed — skipping upload")
+        return ""
 
     body = {
         "snippet": {
@@ -134,6 +156,8 @@ def upload_short(
 
         response = None
         while response is None:
+            import socket
+            socket.setdefaulttimeout(YOUTUBE_API_TIMEOUT)
             status, response = request.next_chunk()
             if status:
                 pct = int(status.progress() * 100)
@@ -145,7 +169,10 @@ def upload_short(
 
     except HttpError as e:
         print(f"❌ YouTube upload failed: {e}")
-        sys.exit(1)
+        return ""
+    except Exception as e:
+        print(f"❌ YouTube upload error: {e}")
+        return ""
 
 
 if __name__ == "__main__":

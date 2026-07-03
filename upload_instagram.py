@@ -1,6 +1,7 @@
 """
 Upload rendered GTA VI brainrot shorts to Instagram Reels.
 Uses instagrapi (unofficial but free) for posting.
+All API calls have timeouts to prevent indefinite hangs on CI.
 """
 from __future__ import annotations
 
@@ -8,6 +9,8 @@ import sys
 from pathlib import Path
 
 import config
+
+IG_TIMEOUT = 60  # 1 minute timeout for Instagram operations
 
 
 def upload_reel(
@@ -39,6 +42,11 @@ def upload_reel(
         from instagrapi.exceptions import LoginRequired, ClientError
 
         cl = Client()
+        # Set a timeout on IG requests
+        import socket
+        socket.setdefaulttimeout(IG_TIMEOUT)
+        cl.delay_range = [1, 3]  # Respect rate limits
+
         cl.login(config.IG_USERNAME, config.IG_PASSWORD)
         print("   ✅ Logged in")
 
