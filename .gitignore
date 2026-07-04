@@ -14,8 +14,9 @@ data/output/
 data/cache/
 data/used_clips.json
 
-# But keep committed clips tracked
+# But keep committed clips and IG session tracked
 !data/clips/
+!data/cache/ig_settings.json
 
 # OS
 Thumbs.db
