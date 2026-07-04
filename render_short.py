@@ -1,8 +1,8 @@
 """
 Render final 9:16 brainrot short with HIGH QUALITY.
 - Lanczos upscale + unsharp for crisp 1080p
-- Center-screen colorful ASS subtitles with word-by-word timing
-- Cascading quality presets (slow → medium → fast)
+- Center-screen colorful ASS subtitles
+- Word timings matched to voiceover speed
 """
 from __future__ import annotations
 
@@ -10,54 +10,66 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import config
 
+# Timeout for ffmpeg render operations (5 min for normal, 10 min for high-quality)
 RENDER_TIMEOUT = 600
 FFPROBE_TIMEOUT = 60
 
 
 def _get_dur(path: Path) -> float:
-    r = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
-        capture_output=True, text=True, timeout=FFPROBE_TIMEOUT,
-    )
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                        "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+                       capture_output=True, text=True, timeout=FFPROBE_TIMEOUT)
     return float(r.stdout.strip())
 
 
-def _build_word_timings(
-    words: list[str],
-    audio_dur: float,
-    sentence_timings: list[dict] | None = None,
-) -> list[tuple[float, float, str]]:
-    """Build (start_sec, end_sec, word) tuples from sentence timestamps."""
+def _build_word_timings(clean_words: list[str], audio_dur: float,
+                        sentence_timings: list[dict] | None = None) -> list[tuple[float, float, str]]:
+    """
+    Build (start_sec, end_sec, word) tuples.
+    If sentence_timings are provided, words are distributed within each sentence.
+    Otherwise words are evenly spread across total duration.
+    """
     result = []
-    n = len(words)
+    n = len(clean_words)
 
     if sentence_timings and len(sentence_timings) > 0:
+        # Map words to sentences
+        # First, reconstruct sentences from the words
+        sentence_texts = [s.get("text", "") for s in sentence_timings]
+
+        # Simple greedy matching: assign words to sentence boundaries
         word_idx = 0
+        total_sentence_dur = sum(
+            s.get("duration_ms", 1000) / 1000 for s in sentence_timings
+        )
+
         for sent in sentence_timings:
             s_text = sent.get("text", "")
             s_start = sent.get("offset_ms", 0) / 1000
             s_dur = sent.get("duration_ms", 1000) / 1000
             s_end = s_start + s_dur
 
+            # Count words in this sentence
             s_words = [w for w in s_text.split() if w.strip()]
             n_s_words = len(s_words)
 
             if n_s_words > 0 and word_idx < n:
+                # Assign words to this sentence's time range
                 w_per = s_dur / n_s_words
                 for j in range(n_s_words):
                     if word_idx >= n:
                         break
                     ws = s_start + j * w_per
                     we = min(ws + w_per, s_end)
-                    result.append((ws, we, words[word_idx]))
+                    result.append((ws, we, clean_words[word_idx]))
                     word_idx += 1
 
-        # Remaining words
+        # Assign any remaining words
         remaining = n - word_idx
         if remaining > 0:
             last_end = result[-1][1] if result else audio_dur
@@ -66,11 +78,12 @@ def _build_word_timings(
             for j in range(remaining):
                 ws = last_end + j * w_per
                 we = min(ws + w_per, audio_dur)
-                result.append((ws, we, words[word_idx]))
+                result.append((ws, we, clean_words[word_idx]))
                 word_idx += 1
     else:
+        # Fallback: evenly distribute
         w_per = audio_dur / max(n, 1)
-        for i, w in enumerate(words):
+        for i, w in enumerate(clean_words):
             ws = i * w_per
             we = min((i + 1) * w_per, audio_dur)
             result.append((ws, we, w))
@@ -79,9 +92,7 @@ def _build_word_timings(
 
 
 def render(
-    clip_path: Path,
-    audio_path: Path,
-    narration: str,
+    clip_path: Path, audio_path: Path, narration: str,
     output_path: Path | None = None,
     sentence_timings: list[dict] | None = None,
 ) -> Path:
@@ -95,13 +106,15 @@ def render(
 
     # Clean narration for subtitles
     clean = narration.replace("**", "").replace("__", "").replace("*", "")
-    clean = re.sub(r'[^\w\s\'",.!?;:\-]', "", clean).strip()
+    clean = re.sub(r'[^\w\s\'",.!?;:\-]', '', clean).strip()
     if not clean:
         clean = "GTA VI BRAINROT"
     words = clean.split()
+    n = len(words)
 
+    # Build word timings from sentence timestamps
     timings = _build_word_timings(words, audio_dur, sentence_timings)
-    print(f"   {len(words)} words, {audio_dur:.0f}s audio, {len(sentence_timings or [])} sentences")
+    print(f"   {n} words, {audio_dur:.0f}s audio, {len(sentence_timings or [])} sentences")
 
     # ── Build ASS subtitles ──
     ass = (
@@ -119,17 +132,17 @@ def render(
     ]
 
     for i, (ts, te, w) in enumerate(timings):
-        def _t(s):
-            h = int(s // 3600)
-            m = int((s % 3600) // 60)
-            return f"{h}:{m:02d}:{s % 60:05.2f}"
+        def _t(s): h = int(s // 3600); m = int((s % 3600) // 60); return f"{h}:{m:02d}:{s % 60:05.2f}"
         c = colors[i % len(colors)]
         ass += f"Dialogue: 0,{_t(ts)},{_t(te)},Default,,0,0,0,,{{\\\\c{c}\\an5}}{w}\n"
 
+    # Write ASS to output dir
     ass_path = config.OUTPUT_DIR / "captions.ass"
     ass_path.write_text(ass, encoding="utf-8")
 
-    # ── Render with cascading quality presets ──
+    # ── Render ──
+    # Use relative path to avoid colon-in-drive-letter issues in ffmpeg filter graph
+    # (e.g. D:/path/... would be parsed as option separator by subtitles filter)
     ass_safe = "data/output/captions.ass"
 
     def _build_cmd(preset: str, crf: str, bv: str, ba: str) -> list[str]:
@@ -152,6 +165,7 @@ def render(
             str(output_path),
         ]
 
+    # Try high quality first, fall back to faster presets on timeout/failure
     presets = [
         ("slow", "16", "12M", "256k"),
         ("medium", "16", "10M", "256k"),
@@ -160,15 +174,17 @@ def render(
 
     for preset, crf, bv, ba in presets:
         cmd = _build_cmd(preset, crf, bv, ba)
-        print(f"   Rendering ({preset}, {bv}, crf {crf})…")
+        print(f"   Trying {preset} preset ({bv}, crf {crf})…")
         try:
+            # Use subprocess.DEVNULL to avoid pipe buffer deadlock with ffmpeg's stderr
             r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=RENDER_TIMEOUT)
         except subprocess.TimeoutExpired:
-            print(f"   ⚠ Timed out, trying lower preset")
+            print(f"   ⚠ {preset} preset timed out")
             continue
         if r.returncode == 0:
             break
-        print(f"   ⚠ Failed (code {r.returncode}), trying lower preset")
+        else:
+            print(f"   ⚠ {preset} preset failed (code {r.returncode})")
     else:
         print("❌ All render presets failed")
         sys.exit(1)

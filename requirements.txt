@@ -1,4 +1,22 @@
+# Core
 groq>=0.12.0
 python-dotenv>=1.0.0
+
+# Audio / TTS
 edge-tts>=6.1.0
+
+# Video processing
+ffmpeg-python>=0.2.0
+moviepy>=1.0.3
+Pillow>=10.0.0
+
+# Downloading clips
 yt-dlp>=2024.0.0
+
+# Instagram upload
+instagrapi>=2.0.0
+
+# YouTube upload (reuse existing client lib)
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0
+google-api-python-client>=2.100.0
