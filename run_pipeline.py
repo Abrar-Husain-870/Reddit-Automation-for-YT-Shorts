@@ -179,7 +179,7 @@ def main() -> None:
         video_path = config.OUTPUT_DIR / "final_short.mp4"
         render(clip, audio_path, narration, output_path=video_path,
                sentence_timings=sentence_timings, style=style,
-               emphasis_words=emphasis_words)
+               emphasis_words=emphasis_words, video_title=title)
 
         # ── Step 7: Upload ──
         if not args.no_upload:

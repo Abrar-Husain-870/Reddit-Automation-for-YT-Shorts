@@ -135,6 +135,24 @@ def _parse_structured_response(response: str) -> dict:
             # Remove title from narration
             result["full_narration"] = "\n".join(lines[:-1]).strip()
 
+    # Generate title from HOOK if no explicit TITLE was found
+    if result["title"] == "GTA V BRAINROT" and result.get("hook"):
+        # Use hook as title (truncate to 60 chars if needed)
+        hook_title = result["hook"].rstrip(".!?")
+        hook_title = re.sub(r'[^\w\s\'-]', '', hook_title).strip()
+        if hook_title:
+            # Style prefix based on content
+            result["title"] = hook_title[:60]
+
+    # If still no title, generate from first line of narration
+    if result["title"] == "GTA V BRAINROT" and result["full_narration"]:
+        first_sentence = result["full_narration"].split(".")[0].strip()
+        if first_sentence and len(first_sentence) > 5:
+            first_sentence = re.sub(r'[^\w\s\'-]', '', first_sentence).strip()
+            if len(first_sentence) > 55:
+                first_sentence = first_sentence[:55] + "..."
+            result["title"] = first_sentence
+
     # Always extract emphasis from narration as fallback
     if not result["emphasis"] and result["full_narration"]:
         result["emphasis"] = _extract_emphasis_from_text(result["full_narration"])
