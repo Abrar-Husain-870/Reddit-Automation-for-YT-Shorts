@@ -1,206 +1,239 @@
 #!/usr/bin/env python3
 """
-GTA / GTA V Brainrot Shorts — Full Automation Pipeline.
-Automatically rotates between styles. Supports YouTube + Instagram uploads.
-All subprocess/API calls have timeouts to prevent indefinite hangs on CI.
+Reddit to Shorts Automation Pipeline — Master Orchestrator.
+Parses settings, coordinates ingestion, narration, voiceover, rendering, and upload.
+Robust error handling ensures the pipeline completes even if APIs fail.
 """
 from __future__ import annotations
 
 import argparse
 import random
-import signal
-import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import config
-from download_clips import download_fresh_clips, list_existing_raw
-from process_clips import process_all_raw, get_random_clip
-from generate_script import generate_brainrot_script
-from generate_voiceover import synthesize_brainrot_voiceover
-from render_short import render
+from src.logger import (
+    logger,
+    log_stage_start,
+    log_stage_finish,
+    log_stage_error,
+)
+from src.reddit.client import get_random_reddit_post, save_processed_id
+from src.narration import generate_script_with_fallback
+from src.voice import synthesize_voiceover_with_fallback
+from src.video import (
+    get_background_clip,
+    increment_background_usage,
+    generate_reddit_card,
+    render_short,
+)
+from src.upload import upload_short, check_scheduler_run
 
-STYLES = ["chaotic", "meme", "story", "npc"]
-
-# Viral hashtag pools
-YT_HASHTAGS = "#gaming #gamingclips #gamingvideos #funnygaming #gamingmoments #viralshorts #funnymoments #gamer #clip #gamingcommunity #explore #fyp"
-IG_HASHTAGS = "#gaming #gamingclips #viralreels #reels #funnygaming #gamingvideos #explorepage #viralclips #gamer #funnymoments #trending #fyp"
-
-# Global timeout for the entire pipeline (40 min — CI has 45 min limit)
-import threading
-PIPELINE_TIMEOUT = 40 * 60  # 40 minutes in seconds
-
-
-def _pick_style(force: str | None) -> str:
-    """Pick a random style, or use the forced one."""
-    if force and force != "random":
-        return force
-    return random.choice(STYLES)
+# Global timeout for safety (40 minutes)
+PIPELINE_TIMEOUT = 40 * 60
 
 
-def _build_description(style: str, title: str, platform: str = "youtube") -> str:
-    """Build catchy description with relevant hashtags."""
-    hooks = {
-        "chaotic": [
-            "Absolute CHAOS in GTA V 🤯 Watch till the end!",
-            "This is why GTA V is the BEST game ever made 💀",
-            "GTA V physics are BROKEN and I love it 😂",
-        ],
-        "meme": [
-            "GTA V memes never get old 😂 Watch this!",
-            "Only in GTA V would this happen 💀",
-            "This is PEAK GTA V content right here 🏆",
-        ],
-        "story": [
-            "Every NPC in GTA V has a story 📖 This one is CRAZY",
-            "The lore behind GTA V NPCs is DEEP 😱",
-            "This NPC has SEEN things in GTA V 👀",
-        ],
-        "npc": [
-            "POV: You're an NPC in GTA V watching the player 💀",
-            "The NPC experience in GTA V is UNDERRATED 😂",
-            "NPCs in GTA V have enough trauma for a lifetime 💀",
-        ],
-    }
-    hook = random.choice(hooks.get(style, hooks["chaotic"]))
-    hashtags = YT_HASHTAGS if platform == "youtube" else IG_HASHTAGS
-    return f"{hook}\n\n{title}\n.\n.\n{hashtags}"
+def clean_temp_files() -> None:
+    """Clean intermediate temp files in output directory to save space."""
+    logger.info("Cleaning up temporary render files...")
+    for ext in ["*.ass", "*.mp3", "*.png"]:
+        for f in config.OUTPUT_DIR.glob(ext):
+            try:
+                f.unlink(missing_ok=True)
+            except Exception as e:
+                logger.warning(f"Could not delete temp file {f.name}: {e}")
 
 
 def main() -> None:
-    # Set an overall pipeline alarm timeout (Unix) or thread timer (cross-platform)
-    timer = threading.Timer(PIPELINE_TIMEOUT, lambda: (
-        print(f"\n❌ PIPELINE TIMEOUT after {PIPELINE_TIMEOUT//60} minutes — aborting"),
-        sys.exit(1)
-    ))
+    # Safe fallback timer to kill hung subprocesses or API hangs
+    timer = threading.Timer(
+        PIPELINE_TIMEOUT, 
+        lambda: (
+            log_stage_error("Global Pipeline", "Execution timed out", fatal=True),
+            sys.exit(1)
+        )
+    )
     timer.daemon = True
     timer.start()
 
     try:
+        # ── Argument Parsing ─────────────────────────────────
         ap = argparse.ArgumentParser(
-            description="GTA V Brainrot Shorts — Full Automation Pipeline"
+            description="Reddit to Shorts Automation Pipeline"
         )
-        ap.add_argument("--no-upload", action="store_true", help="Skip YouTube/IG upload")
-        ap.add_argument("--skip-download", action="store_true", help="Skip downloading new clips")
-        ap.add_argument("--style", default="random",
+        ap.add_argument("--no-upload", action="store_true", help="Skip YouTube upload phase")
+        ap.add_argument("--force", action="store_true", help="Ignore scheduler slots, run immediately")
+        ap.add_argument("--style", default="random", 
                         choices=["random", "chaotic", "meme", "story", "npc"],
-                        help="Brainrot style (default: random rotation)")
+                        help="Video/caption styling (default: random)")
+        ap.add_argument("--mode", default=None, choices=["natural", "commentary"],
+                        help="Narration generation mode (default: from config)")
+        ap.add_argument("--subreddit", default=None,
+                        help="Override subreddits to fetch from (comma-separated)")
         ap.add_argument("--privacy", default=config.YT_PRIVACY,
-                        choices=["private", "unlisted", "public"],
-                        help="YouTube privacy setting")
+                        choices=["public", "unlisted", "private"],
+                        help="YouTube video visibility")
+        ap.add_argument("--skip-download", action="store_true",
+                        help="Skip downloading new background clips from YouTube")
         args = ap.parse_args()
 
-        style = _pick_style(args.style)
-        print("=" * 60)
-        print(f"🎮 GTA V BRAINROT SHORTS PIPELINE  |  Style: {style.upper()}")
-        print("=" * 60)
+        print("=" * 70)
+        print("=== REDDIT TO SHORTS AUTOMATION PIPELINE ===")
+        print("=" * 70)
 
-        # ── Step 1: Download ──
-        if not args.skip_download:
-            print(f"\n📥 Step 1/6: Downloading fresh GTA V gameplay clips…")
-            new_clips = download_fresh_clips()
-            if new_clips:
-                print(f"   Downloaded {len(new_clips)} new video(s)")
-        else:
-            print(f"\n📥 Step 1/6: Skipping download")
+        # ── Step 0: Scheduler Gatekeeping ────────────────────
+        log_stage_start("Scheduler Check")
+        should_run = check_scheduler_run(force=args.force)
+        log_stage_finish("Scheduler Check", {"should_run": should_run})
+        
+        if not should_run:
+            print("\n[INFO] Pipeline run skipped by Scheduler. (Not inside an active time slot).")
+            print("   Use '--force' to bypass this check.")
+            sys.exit(0)
 
-        # ── Step 2: Process or use existing clips ──
-        if args.skip_download:
-            # On CI with --skip-download: use pre-committed clips directly
-            print(f"\n✂️  Step 2/6: Using pre-committed clips from data/clips/…")
-            clips = sorted(config.CLIPS_DIR.glob("*.mp4"))
-            if clips:
-                print(f"   Found {len(clips)} committed clip(s)")
-        if not clips:
-            print(f"\n✂️  Step 2/6: Processing raw videos into short clips…")
-            clips = process_all_raw()
-        if not clips:
-            print("⚠ No clips available from downloads.")
-            print("   Generating a fallback test clip (solid color + text)…")
-            fallback = config.CLIPS_DIR / "fallback.mp4"
-            try:
-                subprocess.run([
-                    "ffmpeg", "-y",
-                    "-f", "lavfi", "-i", f"color=c=#1a1a2e:s=1920x1080:d=40:r=30",
-                    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-                    "-vf", "drawtext=text='GTA V Gameplay':fontsize=60:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                    "-c:v", "libx264", "-crf", "18", "-c:a", "aac", "-shortest",
-                    str(fallback),
-                ], capture_output=True, text=True, timeout=60)
-            except subprocess.TimeoutExpired:
-                print("   ⚠ Fallback clip generation timed out")
-                print("❌ Cannot proceed without any clip")
-                sys.exit(1)
-            if fallback.exists():
-                clips = [fallback]
-                print(f"   ✅ Created fallback clip: {fallback.name}")
-            else:
-                print("❌ Could not create fallback clip either")
-                sys.exit(1)
-
-        # ── Step 3: Pick clip ──
-        print(f"\n🎲 Step 3/6: Selecting a random clip…")
-        clip = get_random_clip()
-        if not clip:
-            print("❌ No clips in data/clips/")
-            sys.exit(1)
-        print(f"   Selected: {clip.name}")
-
-        # ── Step 4: Generate script ──
-        print(f"\n🧠 Step 4/6: Generating {style} brainrot script…")
-        narration, title, emphasis_words = generate_brainrot_script(style=style)
-        print(f"   Emphasis words: {emphasis_words}")
-
-        # Clean the narration BEFORE both TTS and rendering to keep word counts in sync
-        import re
-        clean_narration = narration.replace("**", "").replace("__", "").replace("*", "")
-        clean_narration = re.sub(r'[^\w\s\'",.!?;:\-]', '', clean_narration).strip()
-        if not clean_narration:
-            clean_narration = "GTA V BRAINROT"
-
-        # Style-based TTS voice selection
+        # Style & Voice Mapping
+        style = args.style
+        if style == "random":
+            style = random.choice(["chaotic", "meme", "story", "npc"])
+            
         style_voices = {
-            "chaotic": "en-US-AndrewNeural",    # deeper, more dramatic
-            "meme": "en-US-AndrewNeural",       # energetic
-            "story": "en-US-BrianNeural",       # conversational
-            "npc": "en-US-GuyNeural",           # calm storyteller
+            "chaotic": "en-US-AndrewNeural",
+            "meme": "en-US-AndrewNeural",
+            "story": "en-US-BrianNeural",
+            "npc": "en-US-GuyNeural",
         }
-        tts_voice = style_voices.get(style, config.TTS_VOICE)
+        tts_voice = style_voices.get(style, "en-US-AndrewNeural")
 
-        # ── Step 5: TTS ──
-        print(f"\n🔊 Step 5/6: Synthesizing voiceover ({tts_voice})…")
-        audio_path = config.OUTPUT_DIR / "voiceover.mp3"
-        audio_dur, sentence_timings = synthesize_brainrot_voiceover(
-            clean_narration, output_path=audio_path, voice=tts_voice,
-        )
+        if args.subreddit:
+            config.SUBREDDITS = [s.strip() for s in args.subreddit.split(",") if s.strip()]
 
-        # ── Step 6: Render ──
-        print(f"\n🎬 Step 6/6: Rendering final 9:16 short with kinetic captions…")
-        video_path = config.OUTPUT_DIR / "final_short.mp4"
-        render(clip, audio_path, narration, output_path=video_path,
-               sentence_timings=sentence_timings, style=style,
-               emphasis_words=emphasis_words, video_title=title)
+        # ── Step 1: Reddit Ingestion ─────────────────────────
+        log_stage_start("Reddit Ingestion")
+        post = get_random_reddit_post()
+        if not post:
+            error_msg = "No suitable Reddit posts found matching criteria"
+            log_stage_error("Reddit Ingestion", error_msg, fatal=True)
+            sys.exit(1)
+            
+        log_stage_finish("Reddit Ingestion", {
+            "id": post.id, 
+            "subreddit": post.subreddit, 
+            "title": post.title[:40] + "..."
+        })
 
-        # ── Step 7: Upload ──
-        if not args.no_upload:
-            print(f"\n📤 Upload phase…")
+        # ── Step 2: Narration Scripting ──────────────────────
+        log_stage_start("Script Generation")
+        narration_mode = args.mode or config.NARRATION_MODE
+        narration, title, emphasis = generate_script_with_fallback(post, narration_mode, style)
+        
+        log_stage_finish("Script Generation", {
+            "title": title,
+            "word_count": len(narration.split()),
+            "emphasis_count": len(emphasis)
+        })
+        logger.info(f"Generated Script Text:\n{narration}\nEmphasis: {emphasis}")
 
-            yt_desc = _build_description(style, title, "youtube")
-            ig_desc = _build_description(style, title, "instagram")
+        # ── Step 3: Background Clip Selection ────────────────
+        log_stage_start("Background Selection")
+        bg_clip = get_background_clip(skip_download=args.skip_download)
+        if not bg_clip or not bg_clip.exists():
+            error_msg = "Could not retrieve background video clip"
+            log_stage_error("Background Selection", error_msg, fatal=True)
+            sys.exit(1)
+            
+        log_stage_finish("Background Selection", {"filename": bg_clip.name})
 
-            from upload_youtube import upload_short
-            upload_short(video_path, title=title, description=yt_desc,
-                         privacy=args.privacy)
-
-            from upload_instagram import upload_reel
-            upload_reel(video_path, caption=ig_desc)
+        # ── Step 4: Reddit Card Overlay Image ────────────────
+        log_stage_start("Overlay Generation")
+        overlay_path = None
+        if config.OVERLAY_REDDIT_SCREENSHOT:
+            try:
+                overlay_path = generate_reddit_card(post)
+                log_stage_finish("Overlay Generation", {"path": str(overlay_path)})
+            except Exception as e:
+                log_stage_error("Overlay Generation", f"Failed: {e}. Proceeding without overlay.")
+                overlay_path = None
         else:
-            print(f"\n⏭ Skipping upload (--no-upload)")
+            log_stage_finish("Overlay Generation", {"status": "skipped"})
 
-        print(f"\n{'=' * 60}")
-        print(f"✅ PIPELINE COMPLETE!  ({style.upper()} style)")
-        print(f"   Video: {video_path}")
-        print(f"{'=' * 60}")
+        # ── Step 5: Voice Synthesis (TTS) ───────────────────
+        log_stage_start("Voice Synthesis")
+        audio_path = config.OUTPUT_DIR / "voiceover.mp3"
+        try:
+            audio_dur, sentence_timings = synthesize_voiceover_with_fallback(
+                narration, output_path=audio_path, voice=tts_voice
+            )
+            log_stage_finish("Voice Synthesis", {"duration_s": audio_dur, "sentences": len(sentence_timings)})
+        except Exception as e:
+            log_stage_error("Voice Synthesis", e, fatal=True)
+            sys.exit(1)
+
+        # ── Step 6: FFmpeg Render ────────────────────────────
+        log_stage_start("Video Rendering")
+        video_path = config.OUTPUT_DIR / "final_short.mp4"
+        try:
+            render_short(
+                clip_path=bg_clip,
+                audio_path=audio_path,
+                narration=narration,
+                overlay_card_path=overlay_path,
+                output_path=video_path,
+                sentence_timings=sentence_timings,
+                style=style,
+                emphasis_words=emphasis
+            )
+            log_stage_finish("Video Rendering", {"output_video": str(video_path)})
+        except Exception as e:
+            log_stage_error("Video Rendering", e, fatal=True)
+            sys.exit(1)
+
+        # ── Step 7: Update Databases ─────────────────────────
+        log_stage_start("Database Update")
+        save_processed_id(post.id)
+        increment_background_usage(bg_clip.name)
+        log_stage_finish("Database Update")
+
+        # ── Step 8: Upload YouTube Shorts ────────────────────
+        video_id = ""
+        if not args.no_upload:
+            log_stage_start("YouTube Upload")
+            
+            # Formulate descriptions
+            desc_body = f"Reddit story from r/{post.subreddit}.\n\nOriginal title: {post.title}"
+            
+            video_id = upload_short(
+                video_path=video_path,
+                title=title,
+                description=desc_body,
+                privacy=args.privacy
+            )
+            
+            if video_id:
+                log_stage_finish("YouTube Upload", {"video_id": video_id})
+            else:
+                log_stage_error("YouTube Upload", "Upload failed")
+        else:
+            log_stage_start("YouTube Upload")
+            log_stage_finish("YouTube Upload", {"status": "skipped"})
+
+        # ── Step 9: Instagram Reels Guide ────────────────────
+        print()
+        print("=" * 70)
+        print("=== INSTAGRAM MANUAL UPLOAD GUIDE ===")
+        print("=" * 70)
+        print(f"Post Description:\n{title}\n\nReddit story from r/{post.subreddit} #reddit #shorts\n")
+        print(f"Video File: {video_path}")
+        print("=" * 70)
+
+        # Cleanup intermediate files
+        clean_temp_files()
+
+        print("\n[SUCCESS] PIPELINE SUCCESSFUL!")
+        if video_id:
+            print(f"   Published YouTube Short: https://www.youtube.com/shorts/{video_id}")
+        print(f"   Video file saved to: {video_path}\n")
 
     finally:
         timer.cancel()

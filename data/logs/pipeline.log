@@ -1,0 +1,251 @@
+2026-07-08 21:02:31,512 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 21:02:31,514 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 21:02:31,514 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 21:02:31,515 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 21:02:31,515 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 21:02:31,516 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 21:02:31,517 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 21:02:32,040 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: HTTP Error 403: Blocked
+2026-07-08 21:02:32,041 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/Unexpected
+2026-07-08 21:02:32,046 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/Unexpected/top.json?t=week
+2026-07-08 21:02:32,860 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/Unexpected: HTTP Error 403: Blocked
+2026-07-08 21:02:32,862 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 21:02:32,863 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/tifu/top.json?t=week
+2026-07-08 21:02:33,268 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: HTTP Error 403: Blocked
+2026-07-08 21:02:33,269 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 21:02:33,271 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 21:02:33,576 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: HTTP Error 403: Blocked
+2026-07-08 21:02:33,607 [ERROR] RedditShortsPipeline: ❌ No eligible Reddit posts found matching all filters across all subreddits.
+2026-07-08 21:02:33,612 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Reddit Ingestion (failed after 2.10s) — No suitable Reddit posts found matching criteria
+2026-07-08 22:06:07,935 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:06:07,938 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:06:07,938 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:06:07,939 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:06:07,939 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:06:07,940 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 22:06:07,941 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/tifu/top.json?t=week
+2026-07-08 22:06:08,349 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: HTTP Error 403: Blocked
+2026-07-08 22:06:08,350 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 22:06:08,351 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 22:06:08,607 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: HTTP Error 403: Blocked
+2026-07-08 22:06:08,608 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:06:08,610 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:06:08,877 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: HTTP Error 403: Blocked
+2026-07-08 22:06:08,878 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/Unexpected
+2026-07-08 22:06:08,879 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/Unexpected/top.json?t=week
+2026-07-08 22:06:09,175 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/Unexpected: HTTP Error 403: Blocked
+2026-07-08 22:06:09,176 [ERROR] RedditShortsPipeline: ❌ No eligible Reddit posts found matching all filters across all subreddits.
+2026-07-08 22:06:09,176 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Reddit Ingestion (failed after 1.24s) — No suitable Reddit posts found matching criteria
+2026-07-08 22:06:28,586 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:06:28,587 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:06:28,587 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:06:28,587 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:06:28,587 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:06:28,588 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:06:28,589 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:06:29,265 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: HTTP Error 403: Blocked
+2026-07-08 22:06:29,266 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/Unexpected
+2026-07-08 22:06:29,267 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/Unexpected/top.json?t=week
+2026-07-08 22:06:29,547 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/Unexpected: HTTP Error 403: Blocked
+2026-07-08 22:06:29,547 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 22:06:29,549 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/tifu/top.json?t=week
+2026-07-08 22:06:29,833 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: HTTP Error 403: Blocked
+2026-07-08 22:06:29,834 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 22:06:29,835 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 22:06:30,139 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: HTTP Error 403: Blocked
+2026-07-08 22:06:30,140 [ERROR] RedditShortsPipeline: ❌ No eligible Reddit posts found matching all filters across all subreddits.
+2026-07-08 22:06:30,140 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Reddit Ingestion (failed after 1.55s) — No suitable Reddit posts found matching criteria
+2026-07-08 22:07:02,361 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:07:02,361 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:07:02,362 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:07:02,362 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:07:02,362 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:07:02,362 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:07:03,569 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/AskReddit/top.json
+2026-07-08 22:07:03,941 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: 403 Client Error: Blocked for url: https://old.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:07:03,942 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/Unexpected
+2026-07-08 22:07:03,943 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/Unexpected/top.json
+2026-07-08 22:07:04,292 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/Unexpected: 403 Client Error: Blocked for url: https://old.reddit.com/r/Unexpected/top.json?t=week
+2026-07-08 22:07:04,292 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 22:07:04,294 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/tifu/top.json
+2026-07-08 22:07:04,632 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: 403 Client Error: Blocked for url: https://old.reddit.com/r/tifu/top.json?t=week
+2026-07-08 22:07:04,632 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 22:07:04,634 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://old.reddit.com/r/MildlyInteresting/top.json
+2026-07-08 22:07:05,093 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: 403 Client Error: Blocked for url: https://old.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 22:07:05,093 [ERROR] RedditShortsPipeline: ❌ No eligible Reddit posts found matching all filters across all subreddits.
+2026-07-08 22:07:05,094 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Reddit Ingestion (failed after 2.73s) — No suitable Reddit posts found matching criteria
+2026-07-08 22:07:36,305 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:07:36,306 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:07:36,306 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:07:36,307 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:07:36,307 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:07:36,307 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/Unexpected
+2026-07-08 22:07:37,353 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/Unexpected/top.json
+2026-07-08 22:07:37,729 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/Unexpected: 403 Client Error: Blocked for url: https://www.reddit.com/r/Unexpected/top.json?t=week
+2026-07-08 22:07:37,729 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 22:07:37,730 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/tifu/top.json
+2026-07-08 22:07:38,154 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: 403 Client Error: Blocked for url: https://www.reddit.com/r/tifu/top.json?t=week
+2026-07-08 22:07:38,155 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:07:38,156 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/AskReddit/top.json
+2026-07-08 22:07:38,435 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: 403 Client Error: Blocked for url: https://www.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:07:38,435 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 22:07:38,437 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/MildlyInteresting/top.json
+2026-07-08 22:07:38,873 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: 403 Client Error: Blocked for url: https://www.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 22:07:38,873 [ERROR] RedditShortsPipeline: ❌ No eligible Reddit posts found matching all filters across all subreddits.
+2026-07-08 22:07:38,874 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Reddit Ingestion (failed after 2.57s) — No suitable Reddit posts found matching criteria
+2026-07-08 22:08:31,583 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:08:31,584 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:08:31,585 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:08:31,585 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:08:31,586 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:08:31,587 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/Unexpected
+2026-07-08 22:08:32,543 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/Unexpected/top.json
+2026-07-08 22:08:32,929 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/Unexpected: 403 Client Error: Blocked for url: https://www.reddit.com/r/Unexpected/top.json?t=week
+2026-07-08 22:08:32,930 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:08:32,932 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/AskReddit/top.json
+2026-07-08 22:08:33,247 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: 403 Client Error: Blocked for url: https://www.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:08:33,248 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 22:08:33,252 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/tifu/top.json
+2026-07-08 22:08:33,651 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: 403 Client Error: Blocked for url: https://www.reddit.com/r/tifu/top.json?t=week
+2026-07-08 22:08:33,653 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 22:08:33,656 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/MildlyInteresting/top.json
+2026-07-08 22:08:34,059 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: 403 Client Error: Blocked for url: https://www.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 22:08:34,060 [ERROR] RedditShortsPipeline: ❌ No eligible Reddit posts found matching all filters across all subreddits.
+2026-07-08 22:08:34,061 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Reddit Ingestion (failed after 2.47s) — No suitable Reddit posts found matching criteria
+2026-07-08 22:13:38,484 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:13:38,486 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:13:38,486 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:13:38,487 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:13:38,487 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:13:38,488 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 22:13:39,484 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/tifu/top.json
+2026-07-08 22:13:39,813 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: 403 Client Error: Blocked for url: https://www.reddit.com/r/tifu/top.json?t=week
+2026-07-08 22:13:39,830 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/tifu/.rss
+2026-07-08 22:13:40,197 [WARNING] RedditShortsPipeline: RSS feed fetch failed for r/tifu: 429 Client Error: Too Many Requests for url: https://www.reddit.com/r/tifu/.rss
+2026-07-08 22:13:40,198 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:13:40,199 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/AskReddit/top.json
+2026-07-08 22:13:40,533 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: 403 Client Error: Blocked for url: https://www.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:13:40,534 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/AskReddit/.rss
+2026-07-08 22:13:40,914 [WARNING] RedditShortsPipeline: RSS feed fetch failed for r/AskReddit: 429 Client Error: Too Many Requests for url: https://www.reddit.com/r/AskReddit/.rss
+2026-07-08 22:13:40,916 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 22:13:40,917 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/MildlyInteresting/top.json
+2026-07-08 22:13:41,247 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: 403 Client Error: Blocked for url: https://www.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 22:13:41,248 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/MildlyInteresting/.rss
+2026-07-08 22:13:41,529 [WARNING] RedditShortsPipeline: RSS feed fetch failed for r/MildlyInteresting: 429 Client Error: Too Many Requests for url: https://www.reddit.com/r/MildlyInteresting/.rss
+2026-07-08 22:13:41,530 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/Unexpected
+2026-07-08 22:13:41,531 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/Unexpected/top.json
+2026-07-08 22:13:41,862 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/Unexpected: 403 Client Error: Blocked for url: https://www.reddit.com/r/Unexpected/top.json?t=week
+2026-07-08 22:13:41,863 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/Unexpected/.rss
+2026-07-08 22:13:42,758 [WARNING] RedditShortsPipeline: RSS feed fetch failed for r/Unexpected: 429 Client Error: Too Many Requests for url: https://www.reddit.com/r/Unexpected/.rss
+2026-07-08 22:13:42,759 [ERROR] RedditShortsPipeline: ❌ No eligible Reddit posts found matching all filters across all subreddits.
+2026-07-08 22:13:42,759 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Reddit Ingestion (failed after 4.27s) — No suitable Reddit posts found matching criteria
+2026-07-08 22:14:09,051 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:14:09,052 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:14:09,052 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:14:09,052 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:14:09,053 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:14:09,053 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/tifu
+2026-07-08 22:14:09,054 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/tifu/top.json
+2026-07-08 22:14:09,395 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/tifu: 403 Client Error: Blocked for url: https://www.reddit.com/r/tifu/top.json?t=week
+2026-07-08 22:14:09,411 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/tifu/.rss
+2026-07-08 22:14:10,939 [INFO] RedditShortsPipeline: 🎉 Selected Reddit Post: r/tifu - ID: 1upthcj - Title: TIFU by falling down the stairs and breaking my le...
+2026-07-08 22:14:10,940 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Reddit Ingestion in 1.89s | Metadata: {'id': '1upthcj', 'subreddit': 'tifu', 'title': 'TIFU by falling down the stairs and brea...'}
+2026-07-08 22:14:10,940 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Script Generation
+2026-07-08 22:14:14,562 [INFO] RedditShortsPipeline: Sending request to Groq model: llama-3.1-8b-instant
+2026-07-08 22:14:15,449 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-08 22:14:15,478 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Script Generation in 4.54s | Metadata: {'title': 'TIFU by falling down the stairs and breaking my leg 10 minutes after graduating', 'word_count': 126, 'emphasis_count': 3}
+2026-07-08 22:14:15,478 [INFO] RedditShortsPipeline: Generated Script Text:
+I just graduated with my Master's, the highest score possible, I might add. I'm beaming with pride, but I'm also wearing 4 INCH HEELS for the first time in years. I've barely walked in heels before, and I guess you could say I've finally REACHED NEW HEIGHTS of clumsiness. I'm walking down the stairs, feeling like a million bucks, when suddenly my heel slips and I'm tumbling to the bottom. I try to play it cool, but I'm actually FACING THE MUSIC of a fractured tibia. I'm too embarrassed to lay there, so I try to stand up, but it's no use. I'm headed to the ER, and my graduation photos are going to be of me in a CAST, not in a cap and gown.
+Emphasis: ['HEELS', 'REACHED NEW HEIGHTS', 'FACING THE MUSIC']
+2026-07-08 22:14:15,479 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Background Selection
+2026-07-08 22:14:15,481 [INFO] RedditShortsPipeline: Selected background clip: 'Xj5jNjhiXao_clip_076.mp4' (used 0 times previously)
+2026-07-08 22:14:15,481 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Background Selection in 0.00s | Metadata: {'filename': 'Xj5jNjhiXao_clip_076.mp4'}
+2026-07-08 22:14:15,481 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Overlay Generation
+2026-07-08 22:14:15,651 [INFO] RedditShortsPipeline: Reddit card overlay generated at C:\Users\husai\Desktop\Reddit YT Shorts\Brain_Bot\data\output\reddit_card.png (900x284)
+2026-07-08 22:14:15,652 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Overlay Generation in 0.17s | Metadata: {'path': 'C:\\Users\\husai\\Desktop\\Reddit YT Shorts\\Brain_Bot\\data\\output\\reddit_card.png'}
+2026-07-08 22:14:15,652 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Voice Synthesis
+2026-07-08 22:14:15,655 [INFO] RedditShortsPipeline: Synthesizing voiceover with Edge TTS (voice: en-US-AndrewNeural)
+2026-07-08 22:14:15,660 [ERROR] RedditShortsPipeline: Edge TTS synthesis error: No module named 'edge_tts'
+2026-07-08 22:14:15,661 [WARNING] RedditShortsPipeline: Configured TTS provider 'edge' failed: No module named 'edge_tts'. Falling back to Edge TTS.
+2026-07-08 22:14:15,661 [INFO] RedditShortsPipeline: Synthesizing voiceover with Edge TTS (voice: en-US-AndrewNeural)
+2026-07-08 22:14:15,665 [ERROR] RedditShortsPipeline: Edge TTS synthesis error: No module named 'edge_tts'
+2026-07-08 22:14:15,665 [ERROR] RedditShortsPipeline: Fallback Edge TTS also failed: No module named 'edge_tts'
+2026-07-08 22:14:15,665 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Voice Synthesis (failed after 0.01s) — No module named 'edge_tts'
+2026-07-08 22:14:57,220 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:14:57,221 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:14:57,221 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:14:57,222 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:14:57,222 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:14:57,222 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:14:57,223 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/AskReddit/top.json
+2026-07-08 22:14:57,653 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: 403 Client Error: Blocked for url: https://www.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:14:57,671 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/AskReddit/.rss
+2026-07-08 22:14:58,022 [WARNING] RedditShortsPipeline: RSS feed fetch failed for r/AskReddit: 429 Client Error: Too Many Requests for url: https://www.reddit.com/r/AskReddit/.rss
+2026-07-08 22:14:58,022 [INFO] RedditShortsPipeline: Pausing for 2.0s to respect Reddit rate limits...
+2026-07-08 22:15:00,024 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/MildlyInteresting
+2026-07-08 22:15:00,027 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/MildlyInteresting/top.json
+2026-07-08 22:15:00,821 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/MildlyInteresting: 403 Client Error: Blocked for url: https://www.reddit.com/r/MildlyInteresting/top.json?t=week
+2026-07-08 22:15:00,822 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/MildlyInteresting/.rss
+2026-07-08 22:15:02,194 [INFO] RedditShortsPipeline: 🎉 Selected Reddit Post: r/MildlyInteresting - ID: 1uqc80y - Title: Local ISP’s solution to internet outages after a s...
+2026-07-08 22:15:02,195 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Reddit Ingestion in 4.97s | Metadata: {'id': '1uqc80y', 'subreddit': 'MildlyInteresting', 'title': 'Local ISP’s solution to internet outages...'}
+2026-07-08 22:15:02,195 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Script Generation
+2026-07-08 22:15:04,124 [INFO] RedditShortsPipeline: Sending request to Groq model: llama-3.1-8b-instant
+2026-07-08 22:15:05,459 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-08 22:15:05,488 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Script Generation in 3.29s | Metadata: {'title': 'They Sent a TRUCK for a Single Connection', 'word_count': 87, 'emphasis_count': 5}
+2026-07-08 22:15:05,488 [INFO] RedditShortsPipeline: Generated Script Text:
+Imagine waking up to find your internet down after a storm. You're not alone, millions of people are affected. BUT ONE GUY'S ISP TOOK IT TO A NEW LEVEL. They sent a TRUCK with a SINGLE ENGINEER to repair the connection. A TRUCK for ONE HOUSE. The engineer worked tirelessly for hours to restore the connection. And when he finally got it working, the homeowner was overjoyed. But that's not all, the engineer even took a picture with the grateful homeowner. Talk about going above and beyond.
+Emphasis: ['TRUCK', 'SINGLE', 'ENGINEER', 'ONE', 'HOUSE']
+2026-07-08 22:15:05,489 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Background Selection
+2026-07-08 22:15:05,491 [INFO] RedditShortsPipeline: Selected background clip: 'Xj5jNjhiXao_clip_076.mp4' (used 0 times previously)
+2026-07-08 22:15:05,491 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Background Selection in 0.00s | Metadata: {'filename': 'Xj5jNjhiXao_clip_076.mp4'}
+2026-07-08 22:15:05,491 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Overlay Generation
+2026-07-08 22:15:05,600 [INFO] RedditShortsPipeline: Reddit card overlay generated at C:\Users\husai\Desktop\Reddit YT Shorts\Brain_Bot\data\output\reddit_card.png (900x277)
+2026-07-08 22:15:05,601 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Overlay Generation in 0.11s | Metadata: {'path': 'C:\\Users\\husai\\Desktop\\Reddit YT Shorts\\Brain_Bot\\data\\output\\reddit_card.png'}
+2026-07-08 22:15:05,601 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Voice Synthesis
+2026-07-08 22:15:05,604 [INFO] RedditShortsPipeline: Synthesizing voiceover with Edge TTS (voice: en-US-AndrewNeural)
+2026-07-08 22:15:08,576 [ERROR] RedditShortsPipeline: Edge TTS synthesis error: Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x00000246ECA48440> [The specified network name is no longer available]
+2026-07-08 22:15:08,576 [WARNING] RedditShortsPipeline: Configured TTS provider 'edge' failed: Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x00000246ECA48440> [The specified network name is no longer available]. Falling back to Edge TTS.
+2026-07-08 22:15:08,577 [INFO] RedditShortsPipeline: Synthesizing voiceover with Edge TTS (voice: en-US-AndrewNeural)
+2026-07-08 22:15:08,742 [ERROR] RedditShortsPipeline: Edge TTS synthesis error: Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x00000246ECA48440> [The specified network name is no longer available]
+2026-07-08 22:15:08,743 [ERROR] RedditShortsPipeline: Fallback Edge TTS also failed: Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x00000246ECA48440> [The specified network name is no longer available]
+2026-07-08 22:15:08,743 [ERROR] RedditShortsPipeline: ❌ FATAL IN STAGE: Voice Synthesis (failed after 3.14s) — Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x00000246ECA48440> [The specified network name is no longer available]
+2026-07-08 22:17:53,844 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Scheduler Check
+2026-07-08 22:17:53,845 [INFO] RedditShortsPipeline: Uploads in last 24 hours: 0 (Limit: 4)
+2026-07-08 22:17:53,845 [INFO] RedditShortsPipeline: Scheduler Check: Forced run requested
+2026-07-08 22:17:53,846 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Scheduler Check in 0.00s | Metadata: {'should_run': True}
+2026-07-08 22:17:53,846 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Reddit Ingestion
+2026-07-08 22:17:53,847 [INFO] RedditShortsPipeline: Searching subreddits for posts: r/AskReddit
+2026-07-08 22:17:53,848 [INFO] RedditShortsPipeline: Fetching posts from anonymous Reddit feed: https://www.reddit.com/r/AskReddit/top.json
+2026-07-08 22:17:54,304 [WARNING] RedditShortsPipeline: Public Reddit API fetch failed for r/AskReddit: 403 Client Error: Blocked for url: https://www.reddit.com/r/AskReddit/top.json?t=week
+2026-07-08 22:17:54,324 [INFO] RedditShortsPipeline: Fetching posts from anonymous RSS feed: https://www.reddit.com/r/AskReddit/.rss
+2026-07-08 22:17:55,193 [INFO] RedditShortsPipeline: 🎉 Selected Reddit Post: r/AskReddit - ID: 1uqih1d - Title: What is the highest form of intimacy in your opini...
+2026-07-08 22:17:55,194 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Reddit Ingestion in 1.35s | Metadata: {'id': '1uqih1d', 'subreddit': 'AskReddit', 'title': 'What is the highest form of intimacy in ...'}
+2026-07-08 22:17:55,194 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Script Generation
+2026-07-08 22:17:57,168 [INFO] RedditShortsPipeline: Sending request to Groq model: llama-3.1-8b-instant
+2026-07-08 22:17:58,042 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-08 22:17:58,078 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Script Generation in 2.88s | Metadata: {'title': "What's the most intimate thing you've ever shared with another person?", 'word_count': 120, 'emphasis_count': 3}
+2026-07-08 22:17:58,079 [INFO] RedditShortsPipeline: Generated Script Text:
+"I was in a conversation with someone who had been in a coma for 5 years. When they finally woke up, he looked at his wife and said 'I'm sorry'. That's not even a word, it's a feeling. For him, it was saying 'I'm sorry I wasn't there, I'm sorry I missed out on so much, I'm sorry I'm still here and I don't know what happened'. It wasn't just a word, it was a release of FIVE YEARS OF PAIN, a release of regret, a release of uncertainty. It was a moment of TRUTH, a moment of vulnerability, and a moment of INTIMACY. It was saying 'I'm still here with you, I'm still alive, and I still love you.'
+Emphasis: ['FIVE YEARS OF PAIN', 'TRUTH', 'INTIMACY']
+2026-07-08 22:17:58,080 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Background Selection
+2026-07-08 22:17:58,082 [INFO] RedditShortsPipeline: Selected background clip: 'Xj5jNjhiXao_clip_063.mp4' (used 0 times previously)
+2026-07-08 22:17:58,083 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Background Selection in 0.00s | Metadata: {'filename': 'Xj5jNjhiXao_clip_063.mp4'}
+2026-07-08 22:17:58,083 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Overlay Generation
+2026-07-08 22:17:58,247 [INFO] RedditShortsPipeline: Reddit card overlay generated at C:\Users\husai\Desktop\Reddit YT Shorts\Brain_Bot\data\output\reddit_card.png (900x284)
+2026-07-08 22:17:58,250 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Overlay Generation in 0.17s | Metadata: {'path': 'C:\\Users\\husai\\Desktop\\Reddit YT Shorts\\Brain_Bot\\data\\output\\reddit_card.png'}
+2026-07-08 22:17:58,252 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Voice Synthesis
+2026-07-08 22:17:58,264 [INFO] RedditShortsPipeline: Synthesizing voiceover with Edge TTS (voice: en-US-AndrewNeural)
+2026-07-08 22:18:17,425 [INFO] RedditShortsPipeline: Generated Edge TTS voiceover: 36.70s (7 sentences)
+2026-07-08 22:18:17,426 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Voice Synthesis in 19.17s | Metadata: {'duration_s': 36.696, 'sentences': 7}
+2026-07-08 22:18:17,427 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Video Rendering
+2026-07-08 22:18:17,514 [INFO] RedditShortsPipeline: Rendering pipeline: Background 'Xj5jNjhiXao_clip_063.mp4' | Audio duration: 36.70s
+2026-07-08 22:18:17,518 [INFO] RedditShortsPipeline: Running FFmpeg render (60 FPS, presets: medium, output: final_short.mp4)
+2026-07-08 22:20:18,463 [INFO] RedditShortsPipeline: ✔ Short rendered successfully: final_short.mp4 (29.67MB, 60fps)
+2026-07-08 22:20:18,464 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Video Rendering in 121.04s | Metadata: {'output_video': 'C:\\Users\\husai\\Desktop\\Reddit YT Shorts\\Brain_Bot\\data\\output\\final_short.mp4'}
+2026-07-08 22:20:18,464 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: Database Update
+2026-07-08 22:20:18,467 [INFO] RedditShortsPipeline: Saved Reddit ID 1uqih1d to history database
+2026-07-08 22:20:18,470 [INFO] RedditShortsPipeline: Updated background usage: Xj5jNjhiXao_clip_063.mp4 has been used 1 time(s)
+2026-07-08 22:20:18,471 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: Database Update in 0.01s
+2026-07-08 22:20:18,471 [INFO] RedditShortsPipeline: ▶ STARTING STAGE: YouTube Upload
+2026-07-08 22:20:18,472 [INFO] RedditShortsPipeline: ✔ FINISHED STAGE: YouTube Upload in 0.00s | Metadata: {'status': 'skipped'}
+2026-07-08 22:20:18,473 [INFO] RedditShortsPipeline: Cleaning up temporary render files...

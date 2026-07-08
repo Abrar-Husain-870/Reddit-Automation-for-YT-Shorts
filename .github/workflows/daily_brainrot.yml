@@ -1,86 +1,171 @@
-name: Daily Brainrot Short
+name: Reddit Shorts Bot
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SCHEDULE: 4 runs per day (times are in UTC).
+# Your .env has IST times: 09:00, 13:00, 17:00, 21:00 IST
+# IST is UTC+5:30, so subtract 5h30m to get UTC equivalents:
+#   09:00 IST → 03:30 UTC
+#   13:00 IST → 07:30 UTC
+#   17:00 IST → 11:30 UTC
+#   21:00 IST → 15:30 UTC
+# ─────────────────────────────────────────────────────────────────────────────
 on:
   schedule:
-    # Runs twice daily: 7:30 AM IST (02:00 UTC) & 7:30 PM IST (14:00 UTC)
-    - cron: "0 2,14 * * *"
+    - cron: "30 3 * * *"   # 09:00 IST
+    - cron: "30 7 * * *"   # 13:00 IST
+    - cron: "30 11 * * *"  # 17:00 IST
+    - cron: "30 15 * * *"  # 21:00 IST
+
+  # Allow running manually from the GitHub Actions UI
   workflow_dispatch:
     inputs:
       style:
-        description: "Brainrot style (random if empty)"
+        description: "Caption style (leave blank for random)"
         required: false
         default: "random"
         type: choice
-        options:
-          - random
-          - chaotic
-          - meme
-          - story
-          - npc
+        options: [random, chaotic, meme, story, npc]
       privacy:
-        description: "YouTube privacy"
-        required: true
+        description: "YouTube upload visibility"
+        required: false
         default: "public"
         type: choice
-        options:
-          - private
-          - unlisted
-          - public
+        options: [public, unlisted, private]
+      subreddit:
+        description: "Override subreddit (leave blank to use .env list)"
+        required: false
+        default: ""
 
+# Prevent two runs from overlapping and corrupting the database
 concurrency:
-  group: brainrot-daily
+  group: reddit-shorts-pipeline
   cancel-in-progress: false
 
 jobs:
   generate-and-upload:
-    name: "Generate & upload brainrot short"
+    name: "Generate & Upload Reddit Short"
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+
+    # Allows the job to commit back to the repo (for database persistence)
+    permissions:
+      contents: write
 
     steps:
+      # ── 1. Checkout ─────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Fetch full history so git commit works properly
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
+      # ── 2. Python Setup ─────────────────────────────────────────────────────
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
-      - name: Install FFmpeg
+      # ── 3. System Dependencies ───────────────────────────────────────────────
+      - name: Install FFmpeg & fonts
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
+          sudo apt-get install -y -qq ffmpeg fonts-liberation
+          # Install Impact font equivalent (Liberation fonts cover this)
+          fc-cache -fv
 
+      # ── 4. Python Dependencies ───────────────────────────────────────────────
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore clip cache
+      # ── 5. Restore Background Clips Cache ───────────────────────────────────
+      # Caches downloaded & sliced background clips between runs.
+      # Without this, every run would re-download ~500MB from YouTube.
+      - name: Restore background clips cache
         id: cache-clips
         uses: actions/cache/restore@v4
         with:
-          path: data/
-          key: brainrot-data-${{ github.run_id }}
+          path: data/clips/
+          key: background-clips-${{ runner.os }}-v1
           restore-keys: |
-            brainrot-data-
+            background-clips-${{ runner.os }}-
 
-      - name: Run pipeline
+      # ── 6. Run the Pipeline ──────────────────────────────────────────────────
+      - name: Run Reddit Shorts Pipeline
         env:
+          # ── Reddit (optional — leave blank to use anonymous RSS fallback) ──
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+
+          # ── LLM Narration ────────────────────────────────────────────────
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+          # ── Voice Synthesis ──────────────────────────────────────────────
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+
+          # ── YouTube Upload ───────────────────────────────────────────────
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET_VALUE: ${{ secrets.YT_CLIENT_SECRET_VALUE }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          IG_USERNAME: ${{ secrets.IG_USERNAME }}
-          IG_PASSWORD: ${{ secrets.IG_PASSWORD }}
-          YOUTUBE_PRIVACY: ${{ github.event.inputs.privacy || 'public' }}
-        run: |
-          STYLE="${{ github.event.inputs.style || 'random' }}"
-          # Skip download on CI — yt-dlp gets bot-blocked on GitHub runners.
-          # Relies on cached clips or fallback clip generation.
-          python run_pipeline.py --skip-download --style "$STYLE"
 
-      - name: Save clip cache
+          # ── Pipeline Settings (can also live in .env committed to repo) ──
+          SUBREDDITS: ${{ secrets.SUBREDDITS }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          TTS_PROVIDER: ${{ secrets.TTS_PROVIDER }}
+          TTS_VOICE: ${{ secrets.TTS_VOICE }}
+          NARRATION_MODE: ${{ secrets.NARRATION_MODE }}
+          YOUTUBE_PRIVACY: ${{ github.event.inputs.privacy || 'public' }}
+
+        run: |
+          # Build the command
+          STYLE="${{ github.event.inputs.style || 'random' }}"
+          SUB="${{ github.event.inputs.subreddit }}"
+
+          CMD="python run_pipeline.py --force --style $STYLE"
+
+          # Append optional subreddit override from manual dispatch
+          if [ -n "$SUB" ]; then
+            CMD="$CMD --subreddit $SUB"
+          fi
+
+          echo "Running: $CMD"
+          $CMD
+
+      # ── 7. Save Background Clips Cache ──────────────────────────────────────
+      # Saves the freshly downloaded/sliced clips for the next run.
+      - name: Save background clips cache
         uses: actions/cache/save@v4
         if: always()
         with:
-          path: data/
-          key: brainrot-data-${{ github.run_id }}
+          path: data/clips/
+          key: background-clips-${{ runner.os }}-v1
+
+      # ── 8. Persist Database Back to Repo ────────────────────────────────────
+      # Commits processed_posts.json and upload_history.json back to the repo
+      # so the next run knows which posts have been used and tracks daily limits.
+      - name: Commit database updates
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage only the database tracking files, not the generated video
+          git add data/database/processed_posts.json || true
+          git add data/database/upload_history.json  || true
+          git add data/database/used_backgrounds.json || true
+
+          # Only commit if there are actual changes
+          if git diff --cached --quiet; then
+            echo "No database changes to commit."
+          else
+            git commit -m "chore(bot): update tracking database [skip ci]"
+            git push
+          fi

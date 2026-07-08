@@ -1,6 +1,14 @@
 # Core
 groq>=0.12.0
 python-dotenv>=1.0.0
+requests>=2.31.0
+
+# Reddit
+praw>=7.7.1
+
+# LLM Providers
+openai>=1.12.0
+google-generativeai>=0.3.1
 
 # Audio / TTS
 edge-tts>=6.1.0
@@ -13,10 +21,7 @@ Pillow>=10.0.0
 # Downloading clips
 yt-dlp>=2024.0.0
 
-# Instagram upload
-instagrapi>=2.0.0
-
-# YouTube upload (reuse existing client lib)
+# YouTube upload
 google-auth-oauthlib>=1.0.0
 google-auth-httplib2>=0.1.0
-google-api-python-client>=2.100.0
+google-api-python-client>=2.100.0

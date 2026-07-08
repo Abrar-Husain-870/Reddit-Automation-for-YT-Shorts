@@ -1,23 +1,25 @@
-# Environment
+# ── Environment ──────────────────────────────────────────────────────────────
 .env
 
-# Python
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 .venv/
 venv/
 
-# Data (downloaded clips, rendered output)
+# ── Large media files (never commit these to git) ────────────────────────────
 data/raw/
+data/clips/
 data/output/
 data/cache/
-data/used_clips.json
 
-# But keep committed clips and IG session tracked
-!data/clips/
-!data/cache/ig_settings.json
+# ── Database JSON files MUST be tracked (pipeline deduplication) ─────────────
+# These are small text files committed back by the GitHub Actions bot after
+# each run to track which posts have been used and daily upload counts.
+!data/database/
+!data/database/*.json
 
-# OS
+# ── OS ────────────────────────────────────────────────────────────────────────
 Thumbs.db
 .DS_Store
