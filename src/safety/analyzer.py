@@ -80,6 +80,10 @@ class ContentSafetyAnalyzer:
             "fraud_and_scams": re.compile(
                 r"\b(ponzi|scam|scammed|scammer|scams|phishing|carding|hack account|steal money|crypto scam|free money hack|pyramid scheme|get rich quick scam)\b",
                 re.IGNORECASE
+            ),
+            "profanity_and_vulgarity": re.compile(
+                r"\b(fuck|fucking|fucked|fucker|fuckers|motherfucker|motherfuckers|fuckup|fuckups|shit|shitting|shitted|shitty|bullshit|horseshit|dipshit|shithead|bitch|bitches|bitching|asshole|assholes|dumbass|jackass|bastard|bastards|pussy|pussies|cock|cocks|cockhead|dick|dicks|dickhead|dickheads|prick|pricks|slut|sluts|whore|whores|wanker|wankers|twat|twats|douchebag|douchebags|bollocks|arsehole|arseholes|f\*ck|sh\*t|b\*tch|d\*ck|a\*\*hole)\b",
+                re.IGNORECASE
             )
         }
 
@@ -182,7 +186,7 @@ class ContentSafetyAnalyzer:
         system_prompt = (
             "You are an expert content safety classification assistant for a video sharing platform.\n"
             "Your task is to analyze the provided text and determine if it violates YouTube Community Guidelines or advertiser-friendly content policies.\n\n"
-            "You MUST evaluate the content for the following 14 prohibited categories:\n"
+            "You MUST evaluate the content for the following 15 prohibited categories:\n"
             "1. Sexual assault\n"
             "2. Child exploitation or abuse\n"
             "3. Suicide or self-harm\n"
@@ -196,7 +200,8 @@ class ContentSafetyAnalyzer:
             "11. Dangerous challenges\n"
             "12. Harassment\n"
             "13. Doxxing or personal information\n"
-            "14. Fraud and scams\n\n"
+            "14. Fraud and scams\n"
+            "15. Profanity, vulgarity, or cuss words (including words like 'fuck', 'shit', 'bitch', 'dick', 'cock', 'pussy', 'asshole', etc., and their self-censored variants like 'f*ck', 'sh*t', 'd*ck'). Any occurrence of these words makes the content Reject or High Risk.\n\n"
             "Do not rely on simple keyword matching. Analyze the context, tone, and intent of the overall text. Even if a word is not explicitly present, flag it if the context strongly references or details any of these topics.\n\n"
             "Based on your analysis, assign one of the following risk scores:\n"
             "- Safe: Content is family-friendly, positive, educational, or completely harmless.\n"
