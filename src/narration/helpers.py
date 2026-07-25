@@ -123,3 +123,62 @@ def parse_structured_response(response: str, default_title: str = "Reddit Story"
         result["emphasis"] = extract_emphasis_from_text(result["narration"])
         
     return result
+
+
+PROFANITY_REPLACEMENTS = [
+    (re.compile(r"\bbullshit\b", re.IGNORECASE), "nonsense"),
+    (re.compile(r"\bhorseshit\b", re.IGNORECASE), "nonsense"),
+    (re.compile(r"\bdipshit\b", re.IGNORECASE), "fool"),
+    (re.compile(r"\bshithead\b", re.IGNORECASE), "fool"),
+    (re.compile(r"\bshitting\b", re.IGNORECASE), "messing"),
+    (re.compile(r"\bshitted\b", re.IGNORECASE), "messed"),
+    (re.compile(r"\bshitty\b", re.IGNORECASE), "terrible"),
+    (re.compile(r"\bshit\b", re.IGNORECASE), "stuff"),
+    (re.compile(r"\bmotherfuckers?\b", re.IGNORECASE), "jerks"),
+    (re.compile(r"\bfucking\b", re.IGNORECASE), "freaking"),
+    (re.compile(r"\bfucked\b", re.IGNORECASE), "messed"),
+    (re.compile(r"\bfucker\b", re.IGNORECASE), "jerk"),
+    (re.compile(r"\bfuckup\b", re.IGNORECASE), "mistake"),
+    (re.compile(r"\bfuck\b", re.IGNORECASE), "freak"),
+    (re.compile(r"\bbitching\b", re.IGNORECASE), "complaining"),
+    (re.compile(r"\bbitch(es)?\b", re.IGNORECASE), "jerk"),
+    (re.compile(r"\bassholes?\b", re.IGNORECASE), "jerk"),
+    (re.compile(r"\bdumbass(es)?\b", re.IGNORECASE), "fool"),
+    (re.compile(r"\bjackass(es)?\b", re.IGNORECASE), "fool"),
+    (re.compile(r"\bbastards?\b", re.IGNORECASE), "scoundrel"),
+    (re.compile(r"\bpuss(y|ies)\b", re.IGNORECASE), "coward"),
+    (re.compile(r"\bcocks?\b", re.IGNORECASE), "fool"),
+    (re.compile(r"\bdicks?\b", re.IGNORECASE), "jerk"),
+    (re.compile(r"\bdickheads?\b", re.IGNORECASE), "jerk"),
+    (re.compile(r"\bpricks?\b", re.IGNORECASE), "jerk"),
+    (re.compile(r"\bsluts?\b", re.IGNORECASE), "person"),
+    (re.compile(r"\bwhores?\b", re.IGNORECASE), "person"),
+    (re.compile(r"\bcrap\b", re.IGNORECASE), "junk"),
+    (re.compile(r"\bdamn\b", re.IGNORECASE), "darn"),
+    (re.compile(r"\bf\*ck\b", re.IGNORECASE), "freak"),
+    (re.compile(r"\bsh\*t\b", re.IGNORECASE), "stuff"),
+    (re.compile(r"\bb\*tch\b", re.IGNORECASE), "jerk"),
+    (re.compile(r"\bd\*ck\b", re.IGNORECASE), "jerk"),
+]
+
+
+def _match_case(replacement: str, original: str) -> str:
+    """Match uppercase/capitalized casing of original word."""
+    if original.isupper():
+        return replacement.upper()
+    if original.istitle():
+        return replacement.capitalize()
+    return replacement.lower()
+
+
+def sanitize_profanity_in_script(text: str) -> str:
+    """Replace profanity words with clean family-friendly synonyms, preserving case."""
+    if not text:
+        return text
+    sanitized = text
+    for pattern, replacement in PROFANITY_REPLACEMENTS:
+        def replace_fn(match):
+            return _match_case(replacement, match.group(0))
+        sanitized = pattern.sub(replace_fn, sanitized)
+    return sanitized
+

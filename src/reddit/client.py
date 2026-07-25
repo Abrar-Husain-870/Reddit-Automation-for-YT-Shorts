@@ -13,12 +13,20 @@ import config
 from src.logger import logger
 from src.reddit.models import RedditPost
 
-# Global headers mimicking the official Reddit iOS application to bypass CDN bot protection
+# Global headers mimicking a standard modern desktop browser to bypass CDN bot protection
 DEFAULT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Reddit/2023.23.0",
-    "Accept": "*/*",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Connection": "keep-alive"
+    "Cache-Control": "max-age=0",
+    "Sec-Ch-Ua": '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1"
 }
 
 
@@ -64,22 +72,35 @@ def save_processed_id(post_id: str) -> None:
 
 
 def _fetch_anonymous_json(subreddit: str, sort: str, time_filter: str) -> List[dict]:
-    """Fetch subreddit posts using the public JSON API."""
+    """Fetch subreddit posts using the public JSON API with retry and backoff."""
     url = f"https://www.reddit.com/r/{subreddit}/{sort}.json"
     params = {}
     if sort == "top" and time_filter:
         params["t"] = time_filter
     
     logger.info(f"Fetching posts from anonymous Reddit feed: {url}")
-    try:
-        response = session_client.get(url, params=params, headers=DEFAULT_HEADERS, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        children = data.get("data", {}).get("children", [])
-        return [child.get("data", {}) for child in children]
-    except Exception as e:
-        logger.warning(f"Public Reddit API fetch failed for r/{subreddit}: {e}")
-        return []
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = session_client.get(url, params=params, headers=DEFAULT_HEADERS, timeout=15)
+            if response.status_code in (429, 403):
+                wait_seconds = (attempt + 1) * 3
+                logger.warning(
+                    f"Public Reddit API fetch returned status {response.status_code} for r/{subreddit}. "
+                    f"Retrying in {wait_seconds}s (Attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(wait_seconds)
+                continue
+            response.raise_for_status()
+            data = response.json()
+            children = data.get("data", {}).get("children", [])
+            return [child.get("data", {}) for child in children]
+        except Exception as e:
+            if attempt == max_retries - 1:
+                logger.warning(f"Public Reddit API fetch failed for r/{subreddit}: {e}")
+            else:
+                time.sleep(2)
+    return []
 
 
 def _fetch_with_praw(subreddit: str, sort: str, time_filter: str) -> List[dict]:
@@ -136,7 +157,7 @@ def _fetch_with_praw(subreddit: str, sort: str, time_filter: str) -> List[dict]:
 
 
 def _fetch_with_rss(subreddit: str) -> List[dict]:
-    """Fetch posts via public RSS feeds as a third fallback."""
+    """Fetch posts via public RSS feeds as a fallback with retry backoff."""
     import xml.etree.ElementTree as ET
     import html.parser
     
@@ -151,60 +172,73 @@ def _fetch_with_rss(subreddit: str) -> List[dict]:
 
     url = f"https://www.reddit.com/r/{subreddit}/.rss"
     logger.info(f"Fetching posts from anonymous RSS feed: {url}")
-    try:
-        response = session_client.get(url, headers=DEFAULT_HEADERS, timeout=15)
-        response.raise_for_status()
-        if not response.content.strip():
-            logger.warning("Empty response from RSS feed")
-            return []
-            
-        root = ET.fromstring(response.content)
-        ns = {"atom": "http://www.w3.org/2005/Atom"}
-        
-        posts = []
-        for entry in root.findall("atom:entry", ns):
-            post_id = entry.find("atom:id", ns)
-            post_id_val = post_id.text if post_id is not None else ""
-            if post_id_val.startswith("t3_"):
-                post_id_val = post_id_val[3:]
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = session_client.get(url, headers=DEFAULT_HEADERS, timeout=15)
+            if response.status_code in (429, 403):
+                wait_seconds = (attempt + 1) * 3
+                logger.warning(
+                    f"RSS feed fetch returned status {response.status_code} for r/{subreddit}. "
+                    f"Retrying in {wait_seconds}s (Attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(wait_seconds)
+                continue
+            response.raise_for_status()
+            if not response.content.strip():
+                logger.warning("Empty response from RSS feed")
+                return []
                 
-            title_elem = entry.find("atom:title", ns)
-            title = title_elem.text if title_elem is not None else ""
+            root = ET.fromstring(response.content)
+            ns = {"atom": "http://www.w3.org/2005/Atom"}
             
-            link_elem = entry.find("atom:link", ns)
-            permalink = link_elem.attrib.get("href", "") if link_elem is not None else ""
-            
-            author_elem = entry.find("atom:author/atom:name", ns)
-            author = author_elem.text if author_elem is not None else "[deleted]"
-            if author.startswith("/u/"):
-                author = author[3:]
+            posts = []
+            for entry in root.findall("atom:entry", ns):
+                post_id = entry.find("atom:id", ns)
+                post_id_val = post_id.text if post_id is not None else ""
+                if post_id_val.startswith("t3_"):
+                    post_id_val = post_id_val[3:]
+                    
+                title_elem = entry.find("atom:title", ns)
+                title = title_elem.text if title_elem is not None else ""
                 
-            content_elem = entry.find("atom:content", ns)
-            html_content = content_elem.text if content_elem is not None else ""
-            
-            extractor = HTMLTextExtractor()
-            extractor.feed(html_content)
-            selftext = extractor.get_text().strip()
-            
-            # RSS has no score/comments. Fake values above config minimums to pass filters.
-            posts.append({
-                "id": post_id_val,
-                "subreddit": subreddit,
-                "title": title,
-                "selftext": selftext,
-                "score": config.REDDIT_MIN_SCORE + 100,
-                "num_comments": config.REDDIT_MIN_COMMENTS + 10,
-                "over_18": False,
-                "is_self": True,
-                "permalink": permalink,
-                "author": author,
-                "pinned": False,
-                "crosspost_parent": None
-            })
-        return posts
-    except Exception as e:
-        logger.warning(f"RSS feed fetch failed for r/{subreddit}: {e}")
-        return []
+                link_elem = entry.find("atom:link", ns)
+                permalink = link_elem.attrib.get("href", "") if link_elem is not None else ""
+                
+                author_elem = entry.find("atom:author/atom:name", ns)
+                author = author_elem.text if author_elem is not None else "[deleted]"
+                if author.startswith("/u/"):
+                    author = author[3:]
+                    
+                content_elem = entry.find("atom:content", ns)
+                html_content = content_elem.text if content_elem is not None else ""
+                
+                extractor = HTMLTextExtractor()
+                extractor.feed(html_content)
+                selftext = extractor.get_text().strip()
+                
+                # RSS has no score/comments. Fake values above config minimums to pass filters.
+                posts.append({
+                    "id": post_id_val,
+                    "subreddit": subreddit,
+                    "title": title,
+                    "selftext": selftext,
+                    "score": config.REDDIT_MIN_SCORE + 100,
+                    "num_comments": config.REDDIT_MIN_COMMENTS + 10,
+                    "over_18": False,
+                    "is_self": True,
+                    "permalink": permalink,
+                    "author": author,
+                    "pinned": False,
+                    "crosspost_parent": None
+                })
+            return posts
+        except Exception as e:
+            if attempt == max_retries - 1:
+                logger.warning(f"RSS feed fetch failed for r/{subreddit}: {e}")
+            else:
+                time.sleep(2)
+    return []
 
 
 def fetch_posts(subreddit: str, sort: str = "top", time_filter: str = "week") -> List[RedditPost]:
@@ -287,34 +321,42 @@ def get_random_reddit_post() -> Optional[RedditPost]:
     """
     Fetch posts across configurable subreddits, apply filters, 
     and pick a random eligible post.
+    Retries up to 3 passes across subreddits with backoff if rate limits occur.
     """
-    subreddits = config.SUBREDDITS
+    subreddits = list(config.SUBREDDITS)
     if not subreddits:
         logger.error("No subreddits configured in config.SUBREDDITS")
         return None
         
-    random.shuffle(subreddits)
-    processed_ids = load_processed_ids()
-    
-    for i, sub in enumerate(subreddits):
-        if i > 0:
-            logger.info("Pausing for 2.0s to respect Reddit rate limits...")
-            time.sleep(2.0)
-            
-        logger.info(f"Searching subreddits for posts: r/{sub}")
-        posts = fetch_posts(sub, config.REDDIT_SORT, config.REDDIT_TIME_FILTER)
+    max_passes = 3
+    for pass_idx in range(max_passes):
+        if pass_idx > 0:
+            wait_pass = (pass_idx + 1) * 5
+            logger.warning(f"No posts retrieved in pass {pass_idx}/{max_passes}. Pausing {wait_pass}s before retrying subreddits...")
+            time.sleep(wait_pass)
+
+        random.shuffle(subreddits)
+        processed_ids = load_processed_ids()
         
-        if not posts:
-            continue
-            
-        random.shuffle(posts)
-        for post in posts:
-            filter_reason = filter_post(post, processed_ids)
-            if filter_reason is None:
-                logger.info(f"🎉 Selected Reddit Post: r/{post.subreddit} - ID: {post.id} - Title: {post.title[:50]}...")
-                return post
-            else:
-                logger.debug(f"Filtered out r/{post.subreddit} post {post.id}: {filter_reason}")
+        for i, sub in enumerate(subreddits):
+            if i > 0:
+                logger.info("Pausing for 2.0s to respect Reddit rate limits...")
+                time.sleep(2.0)
                 
+            logger.info(f"Searching subreddits for posts: r/{sub}")
+            posts = fetch_posts(sub, config.REDDIT_SORT, config.REDDIT_TIME_FILTER)
+            
+            if not posts:
+                continue
+                
+            random.shuffle(posts)
+            for post in posts:
+                filter_reason = filter_post(post, processed_ids)
+                if filter_reason is None:
+                    logger.info(f"🎉 Selected Reddit Post: r/{post.subreddit} - ID: {post.id} - Title: {post.title[:50]}...")
+                    return post
+                else:
+                    logger.debug(f"Filtered out r/{post.subreddit} post {post.id}: {filter_reason}")
+                    
     logger.error("❌ No eligible Reddit posts found matching all filters across all subreddits.")
     return None

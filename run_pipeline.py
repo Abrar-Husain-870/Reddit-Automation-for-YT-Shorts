@@ -22,6 +22,7 @@ from src.logger import (
 )
 from src.reddit.client import get_random_reddit_post, save_processed_id
 from src.narration import generate_script_with_fallback
+from src.narration.helpers import sanitize_profanity_in_script
 from src.voice import synthesize_voiceover_with_fallback
 from src.video import (
     get_background_clip,
@@ -198,6 +199,32 @@ def main() -> None:
                 captions=caption_title,
                 stage="After Narration"
             )
+
+            if not safety_res["passed"]:
+                # Attempt in-place sanitization if failure is due to profanity/vulgarity
+                is_profanity = (
+                    "profanity_and_vulgarity" in safety_res.get("categories_detected", []) 
+                    or "profanity" in safety_res.get("reason", "").lower()
+                )
+                if is_profanity:
+                    logger.info(f"Attempting local profanity sanitization for post {post.id} script...")
+                    narration = sanitize_profanity_in_script(narration)
+                    caption_title = sanitize_profanity_in_script(caption_title)
+                    emphasis = [sanitize_profanity_in_script(w) for w in emphasis]
+                    optimized_meta["title"] = sanitize_profanity_in_script(optimized_meta["title"])
+                    optimized_meta["description"] = sanitize_profanity_in_script(optimized_meta["description"])
+                    
+                    # Re-verify safety after sanitization
+                    safety_res = safety_analyzer.check_safety(
+                        title=post.title,
+                        body=post.selftext,
+                        narration=narration,
+                        yt_title=optimized_meta["title"],
+                        description=optimized_meta["description"],
+                        tags=optimized_meta["tags"],
+                        captions=caption_title,
+                        stage="After Narration (Sanitized)"
+                    )
 
             if not safety_res["passed"]:
                 logger.warning(f"Post {post.id} rejected at Stage 2 Narration safety check. Reason: {safety_res['reason']}")
