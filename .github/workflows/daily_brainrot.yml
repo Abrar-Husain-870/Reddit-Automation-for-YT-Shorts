@@ -70,9 +70,10 @@ jobs:
       # ── 3. System Dependencies ───────────────────────────────────────────────
       - name: Install FFmpeg & fonts
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg fonts-liberation
-          # Install Impact font equivalent (Liberation fonts cover this)
+          if ! command -v ffmpeg &> /dev/null || ! dpkg -s fonts-liberation &> /dev/null; then
+            sudo apt-get -o Acquire::http::Timeout="15" -o Acquire::Retries="3" update -qq
+            sudo apt-get -o Acquire::http::Timeout="15" -o Acquire::Retries="3" install -y -qq ffmpeg fonts-liberation
+          fi
           fc-cache -fv
 
       # ── 4. Python Dependencies ───────────────────────────────────────────────
