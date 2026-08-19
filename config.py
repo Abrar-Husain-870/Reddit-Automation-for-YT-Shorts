@@ -80,8 +80,22 @@ OPENAI_API_KEY = _env("OPENAI_API_KEY", "")
 OPENROUTER_API_KEY = _env("OPENROUTER_API_KEY", "")
 OLLAMA_API_URL = _env("OLLAMA_API_URL", "http://localhost:11434/v1")
 
-# Resolve default model names if none is provided
-if not LLM_MODEL:
+# Auto-detect provider if chosen provider key is missing
+if LLM_PROVIDER == "groq" and not GROQ_API_KEY:
+    if OPENAI_API_KEY:
+        LLM_PROVIDER = "openai"
+    elif GEMINI_API_KEY:
+        LLM_PROVIDER = "gemini"
+    elif DEEPSEEK_API_KEY:
+        LLM_PROVIDER = "deepseek"
+elif LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
+    if GROQ_API_KEY:
+        LLM_PROVIDER = "groq"
+    elif GEMINI_API_KEY:
+        LLM_PROVIDER = "gemini"
+
+# Resolve default model names if none is provided or if model is mismatched with provider
+if not LLM_MODEL or (LLM_PROVIDER == "openai" and "llama" in LLM_MODEL.lower()) or (LLM_PROVIDER == "groq" and "gpt" in LLM_MODEL.lower()):
     if LLM_PROVIDER == "groq":
         LLM_MODEL = "llama-3.1-8b-instant"
     elif LLM_PROVIDER == "deepseek":

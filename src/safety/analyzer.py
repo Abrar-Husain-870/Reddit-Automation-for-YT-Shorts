@@ -109,74 +109,95 @@ class ContentSafetyAnalyzer:
         provider = config.LLM_PROVIDER.lower()
         model_name = config.LLM_MODEL
         
-        if provider == "groq":
-            from groq import Groq
-            if not config.GROQ_API_KEY:
-                raise ValueError("GROQ_API_KEY is not configured")
-            client = Groq(api_key=config.GROQ_API_KEY)
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.0,
-                max_tokens=300,
-                timeout=15,
-            )
-            return completion.choices[0].message.content or ""
-            
-        elif provider in ("openai", "deepseek", "openrouter", "ollama"):
-            import openai
-            api_key = ""
-            base_url = None
-            if provider == "openai":
-                api_key = config.OPENAI_API_KEY
-            elif provider == "deepseek":
-                api_key = config.DEEPSEEK_API_KEY
-                base_url = "https://api.deepseek.com"
-            elif provider == "openrouter":
-                api_key = config.OPENROUTER_API_KEY
-                base_url = "https://openrouter.ai/api/v1"
-            elif provider == "ollama":
-                api_key = "ollama"
-                base_url = config.OLLAMA_API_URL
-                
-            if not api_key and provider != "ollama":
-                raise ValueError(f"{provider.upper()} API key is not configured")
-                
-            client = openai.OpenAI(api_key=api_key, base_url=base_url)
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.0,
-                max_tokens=300,
-                timeout=15,
-            )
-            return completion.choices[0].message.content or ""
-            
-        elif provider == "gemini":
-            import google.generativeai as genai
-            if not config.GEMINI_API_KEY:
-                raise ValueError("GEMINI_API_KEY is not configured")
-            genai.configure(api_key=config.GEMINI_API_KEY)
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=system_prompt
-            )
-            response = model.generate_content(
-                user_prompt,
-                generation_config=genai.types.GenerationConfig(
+        # Sanitize model/provider mismatches
+        if provider == "openai" and "llama" in model_name.lower():
+            model_name = "gpt-4o-mini"
+        elif provider == "groq" and "gpt" in model_name.lower():
+            model_name = "llama-3.1-8b-instant"
+
+        try:
+            if provider == "groq" and config.GROQ_API_KEY:
+                from groq import Groq
+                client = Groq(api_key=config.GROQ_API_KEY)
+                completion = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
                     temperature=0.0,
-                    max_output_tokens=300,
+                    max_tokens=300,
+                    timeout=15,
                 )
-            )
-            return response.text or ""
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
+                return completion.choices[0].message.content or ""
+                
+            elif provider in ("openai", "deepseek", "openrouter", "ollama") or (not config.GROQ_API_KEY and config.OPENAI_API_KEY):
+                import openai
+                api_key = config.OPENAI_API_KEY
+                base_url = None
+                if provider == "deepseek":
+                    api_key = config.DEEPSEEK_API_KEY
+                    base_url = "https://api.deepseek.com"
+                elif provider == "openrouter":
+                    api_key = config.OPENROUTER_API_KEY
+                    base_url = "https://openrouter.ai/api/v1"
+                elif provider == "ollama":
+                    api_key = "ollama"
+                    base_url = config.OLLAMA_API_URL
+                    
+                if not api_key and provider != "ollama":
+                    raise ValueError(f"{provider.upper()} API key is not configured")
+                    
+                client = openai.OpenAI(api_key=api_key, base_url=base_url)
+                completion = client.chat.completions.create(
+                    model=model_name if provider != "openai" or "gpt" in model_name else "gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.0,
+                    max_tokens=300,
+                    timeout=15,
+                )
+                return completion.choices[0].message.content or ""
+                
+            elif provider == "gemini" or config.GEMINI_API_KEY:
+                import google.generativeai as genai
+                if not config.GEMINI_API_KEY:
+                    raise ValueError("GEMINI_API_KEY is not configured")
+                genai.configure(api_key=config.GEMINI_API_KEY)
+                model = genai.GenerativeModel(
+                    model_name=model_name if "gemini" in model_name else "gemini-1.5-flash",
+                    system_instruction=system_prompt
+                )
+                response = model.generate_content(
+                    user_prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.0,
+                        max_output_tokens=300,
+                    )
+                )
+                return response.text or ""
+            else:
+                raise ValueError(f"Unsupported LLM provider: {provider}")
+        except Exception as err:
+            # Fallback attempt if groq failed, try openai if key exists
+            if provider == "groq" and config.OPENAI_API_KEY:
+                logger.warning(f"Groq safety check failed ({err}), trying OpenAI fallback...")
+                import openai
+                client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
+                completion = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.0,
+                    max_tokens=300,
+                    timeout=15,
+                )
+                return completion.choices[0].message.content or ""
+            raise err
 
     def run_llm_scan(self, text: str) -> Tuple[str, List[str], str]:
         """
