@@ -115,7 +115,25 @@ class ContentSafetyAnalyzer:
                 model_name = "llama-3.1-8b-instant"
 
         try:
-            if provider == "groq" and config.GROQ_API_KEY:
+            if provider == "gemini" or (config.GEMINI_API_KEY and not config.GROQ_API_KEY):
+                import google.generativeai as genai
+                if not config.GEMINI_API_KEY:
+                    raise ValueError("GEMINI_API_KEY is not configured")
+                genai.configure(api_key=config.GEMINI_API_KEY)
+                model = genai.GenerativeModel(
+                    model_name="gemini-1.5-flash",
+                    system_instruction=system_prompt
+                )
+                response = model.generate_content(
+                    user_prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.0,
+                        max_output_tokens=300,
+                    )
+                )
+                return response.text or ""
+
+            elif provider == "groq" and config.GROQ_API_KEY:
                 from groq import Groq
                 client = Groq(api_key=config.GROQ_API_KEY)
                 try:

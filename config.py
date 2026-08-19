@@ -69,7 +69,7 @@ REDDIT_USER_AGENT = _env("REDDIT_USER_AGENT", "RedditShortsBot/1.0")
 
 # ── AI Narration Settings ────────────────────────────────────
 NARRATION_MODE = _env("NARRATION_MODE", "commentary")  # natural, commentary
-LLM_PROVIDER = _env("LLM_PROVIDER", "groq")  # groq, deepseek, gemini, openai, openrouter, ollama
+LLM_PROVIDER = _env("LLM_PROVIDER", "gemini")  # gemini, groq, deepseek, openai, openrouter, ollama
 LLM_MODEL = _env("LLM_MODEL", "")  # Autoresolved below if empty
 
 # Provider Keys & Custom API Base URLs
@@ -81,27 +81,30 @@ OPENROUTER_API_KEY = _env("OPENROUTER_API_KEY", "")
 OLLAMA_API_URL = _env("OLLAMA_API_URL", "http://localhost:11434/v1")
 
 # Auto-detect provider if chosen provider key is missing
-if LLM_PROVIDER == "groq" and not GROQ_API_KEY:
-    if OPENAI_API_KEY:
-        LLM_PROVIDER = "openai"
-    elif GEMINI_API_KEY:
-        LLM_PROVIDER = "gemini"
-    elif DEEPSEEK_API_KEY:
-        LLM_PROVIDER = "deepseek"
-elif LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
+if LLM_PROVIDER == "gemini" and not GEMINI_API_KEY:
     if GROQ_API_KEY:
         LLM_PROVIDER = "groq"
-    elif GEMINI_API_KEY:
+    elif OPENAI_API_KEY:
+        LLM_PROVIDER = "openai"
+elif LLM_PROVIDER == "groq" and not GROQ_API_KEY:
+    if GEMINI_API_KEY:
         LLM_PROVIDER = "gemini"
+    elif OPENAI_API_KEY:
+        LLM_PROVIDER = "openai"
+elif LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
+    if GEMINI_API_KEY:
+        LLM_PROVIDER = "gemini"
+    elif GROQ_API_KEY:
+        LLM_PROVIDER = "groq"
 
 # Resolve default model names if none is provided or if model is mismatched with provider
-if not LLM_MODEL or (LLM_PROVIDER == "openai" and "llama" in LLM_MODEL.lower()) or (LLM_PROVIDER == "groq" and "gpt" in LLM_MODEL.lower()):
-    if LLM_PROVIDER == "groq":
+if not LLM_MODEL or (LLM_PROVIDER == "gemini" and "gemini" not in LLM_MODEL.lower()) or (LLM_PROVIDER == "groq" and "llama" not in LLM_MODEL.lower()):
+    if LLM_PROVIDER == "gemini":
+        LLM_MODEL = "gemini-1.5-flash"
+    elif LLM_PROVIDER == "groq":
         LLM_MODEL = "llama-3.1-8b-instant"
     elif LLM_PROVIDER == "deepseek":
         LLM_MODEL = "deepseek-chat"
-    elif LLM_PROVIDER == "gemini":
-        LLM_MODEL = "gemini-1.5-flash"
     elif LLM_PROVIDER == "openai":
         LLM_MODEL = "gpt-4o-mini"
     elif LLM_PROVIDER == "openrouter":
@@ -109,7 +112,7 @@ if not LLM_MODEL or (LLM_PROVIDER == "openai" and "llama" in LLM_MODEL.lower()) 
     elif LLM_PROVIDER == "ollama":
         LLM_MODEL = "llama3"
     else:
-        LLM_MODEL = "llama-3.1-8b-instant"
+        LLM_MODEL = "gemini-1.5-flash"
 
 # ── Voice / TTS Settings ─────────────────────────────────────
 TTS_PROVIDER = _env("TTS_PROVIDER", "edge")  # edge, elevenlabs, openai, azure, fish, xtts
