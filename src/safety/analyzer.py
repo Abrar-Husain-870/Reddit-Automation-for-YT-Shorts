@@ -109,29 +109,45 @@ class ContentSafetyAnalyzer:
         provider = config.LLM_PROVIDER.lower()
         model_name = config.LLM_MODEL
         
-        # Sanitize model/provider mismatches
-        if provider == "openai" and "llama" in model_name.lower():
-            model_name = "gpt-4o-mini"
-        elif provider == "groq" and "gpt" in model_name.lower():
-            model_name = "llama-3.1-8b-instant"
+        # Ensure Groq uses valid active models
+        if provider == "groq":
+            if not model_name or "gpt" in model_name.lower() or "8192" in model_name:
+                model_name = "llama-3.1-8b-instant"
 
         try:
             if provider == "groq" and config.GROQ_API_KEY:
                 from groq import Groq
                 client = Groq(api_key=config.GROQ_API_KEY)
-                completion = client.chat.completions.create(
-                    model=model_name,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    temperature=0.0,
-                    max_tokens=300,
-                    timeout=15,
-                )
-                return completion.choices[0].message.content or ""
+                try:
+                    completion = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        temperature=0.0,
+                        max_tokens=300,
+                        timeout=15,
+                    )
+                    return completion.choices[0].message.content or ""
+                except Exception as groq_err:
+                    # Retry once with guaranteed working model
+                    if model_name != "llama-3.1-8b-instant":
+                        logger.warning(f"Groq failed with {model_name} ({groq_err}), retrying with llama-3.1-8b-instant...")
+                        completion = client.chat.completions.create(
+                            model="llama-3.1-8b-instant",
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt},
+                            ],
+                            temperature=0.0,
+                            max_tokens=300,
+                            timeout=15,
+                        )
+                        return completion.choices[0].message.content or ""
+                    raise groq_err
                 
-            elif provider in ("openai", "deepseek", "openrouter", "ollama") or (not config.GROQ_API_KEY and config.OPENAI_API_KEY):
+            elif provider in ("openai", "deepseek", "openrouter", "ollama"):
                 import openai
                 api_key = config.OPENAI_API_KEY
                 base_url = None
@@ -167,7 +183,7 @@ class ContentSafetyAnalyzer:
                     raise ValueError("GEMINI_API_KEY is not configured")
                 genai.configure(api_key=config.GEMINI_API_KEY)
                 model = genai.GenerativeModel(
-                    model_name=model_name if "gemini" in model_name else "gemini-1.5-flash",
+                    model_name="gemini-1.5-flash",
                     system_instruction=system_prompt
                 )
                 response = model.generate_content(
@@ -181,22 +197,17 @@ class ContentSafetyAnalyzer:
             else:
                 raise ValueError(f"Unsupported LLM provider: {provider}")
         except Exception as err:
-            # Fallback attempt if groq failed, try openai if key exists
-            if provider == "groq" and config.OPENAI_API_KEY:
-                logger.warning(f"Groq safety check failed ({err}), trying OpenAI fallback...")
-                import openai
-                client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    temperature=0.0,
-                    max_tokens=300,
-                    timeout=15,
+            # Fallback to Gemini if key exists
+            if config.GEMINI_API_KEY:
+                logger.warning(f"Primary LLM safety check failed ({err}), trying Gemini fallback...")
+                import google.generativeai as genai
+                genai.configure(api_key=config.GEMINI_API_KEY)
+                model = genai.GenerativeModel(
+                    model_name="gemini-1.5-flash",
+                    system_instruction=system_prompt
                 )
-                return completion.choices[0].message.content or ""
+                response = model.generate_content(user_prompt)
+                return response.text or ""
             raise err
 
     def run_llm_scan(self, text: str) -> Tuple[str, List[str], str]:
