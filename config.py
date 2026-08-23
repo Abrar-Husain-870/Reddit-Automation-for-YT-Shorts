@@ -97,12 +97,18 @@ elif LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
     elif GROQ_API_KEY:
         LLM_PROVIDER = "groq"
 
-# Resolve default model names if none is provided or if model is mismatched with provider
-if not LLM_MODEL or (LLM_PROVIDER == "gemini" and "gemini" not in LLM_MODEL.lower()) or (LLM_PROVIDER == "groq" and "llama" not in LLM_MODEL.lower()):
+# Resolve default model names if none is provided or if model is mismatched/deprecated
+deprecated_gemini_models = ("gemini-1.5", "gemini-2.0", "gemini-2.5", "1.5-flash", "2.0-flash", "2.5-flash")
+if (
+    not LLM_MODEL 
+    or any(m in LLM_MODEL.lower() for m in deprecated_gemini_models) 
+    or (LLM_PROVIDER == "gemini" and "gemini" not in LLM_MODEL.lower()) 
+    or (LLM_PROVIDER == "groq" and ("llama-3.1" in LLM_MODEL.lower() or "8192" in LLM_MODEL.lower() or not LLM_MODEL))
+):
     if LLM_PROVIDER == "gemini":
-        LLM_MODEL = "gemini-1.5-flash"
+        LLM_MODEL = "gemini-3.6-flash"
     elif LLM_PROVIDER == "groq":
-        LLM_MODEL = "llama-3.1-8b-instant"
+        LLM_MODEL = "qwen/qwen3.6-27b"
     elif LLM_PROVIDER == "deepseek":
         LLM_MODEL = "deepseek-chat"
     elif LLM_PROVIDER == "openai":
@@ -112,7 +118,7 @@ if not LLM_MODEL or (LLM_PROVIDER == "gemini" and "gemini" not in LLM_MODEL.lowe
     elif LLM_PROVIDER == "ollama":
         LLM_MODEL = "llama3"
     else:
-        LLM_MODEL = "gemini-1.5-flash"
+        LLM_MODEL = "gemini-3.6-flash"
 
 # ── Voice / TTS Settings ─────────────────────────────────────
 TTS_PROVIDER = _env("TTS_PROVIDER", "edge")  # edge, elevenlabs, openai, azure, fish, xtts

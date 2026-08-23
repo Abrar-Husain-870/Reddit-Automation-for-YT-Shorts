@@ -104,6 +104,76 @@ class ContentSafetyAnalyzer:
         
         return "Safe", [], ""
 
+    def _call_gemini(self, system_prompt: str, user_prompt: str) -> str:
+        """Call Google Gemini API using modern google.genai SDK with model fallback sequence."""
+        if not config.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY is not configured")
+
+        candidates = [
+            config.LLM_MODEL if config.LLM_MODEL and "gemini" in config.LLM_MODEL.lower() else "gemini-3.6-flash",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-flash-latest"
+        ]
+        models_to_try = list(dict.fromkeys(candidates))
+
+        # 1. Try modern google.genai SDK
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=config.GEMINI_API_KEY)
+            last_err = None
+            for model in models_to_try:
+                try:
+                    cfg = types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.0,
+                        max_output_tokens=300
+                    )
+                    res = client.models.generate_content(
+                        model=model,
+                        contents=user_prompt,
+                        config=cfg
+                    )
+                    if res.text:
+                        return res.text
+                except Exception as e:
+                    last_err = e
+                    logger.warning(f"Gemini SDK model '{model}' failed: {e}. Trying next model...")
+            if last_err:
+                raise last_err
+        except ImportError:
+            pass
+
+        # 2. Fallback to legacy google.generativeai if google.genai is not available
+        import google.generativeai as genai
+        genai.configure(api_key=config.GEMINI_API_KEY)
+        last_err = None
+        for model in models_to_try:
+            try:
+                g_model = genai.GenerativeModel(
+                    model_name=model,
+                    system_instruction=system_prompt
+                )
+                res = g_model.generate_content(
+                    user_prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.0,
+                        max_output_tokens=300,
+                    )
+                )
+                if res.text:
+                    return res.text
+            except Exception as e:
+                last_err = e
+                logger.warning(f"Legacy Gemini SDK model '{model}' failed: {e}. Trying next model...")
+        if last_err:
+            raise last_err
+
+        raise RuntimeError("All Gemini model attempts failed")
+
     def _call_llm(self, system_prompt: str, user_prompt: str) -> str:
         """Call the configured LLM provider for content safety classification."""
         provider = config.LLM_PROVIDER.lower()
@@ -111,27 +181,12 @@ class ContentSafetyAnalyzer:
         
         # Ensure Groq uses valid active models
         if provider == "groq":
-            if not model_name or "gpt" in model_name.lower() or "8192" in model_name:
-                model_name = "llama-3.1-8b-instant"
+            if not model_name or "llama-3.1" in model_name.lower() or "8192" in model_name or "gpt" in model_name.lower():
+                model_name = "qwen/qwen3.6-27b"
 
         try:
-            if provider == "gemini" or (config.GEMINI_API_KEY and not config.GROQ_API_KEY):
-                import google.generativeai as genai
-                if not config.GEMINI_API_KEY:
-                    raise ValueError("GEMINI_API_KEY is not configured")
-                genai.configure(api_key=config.GEMINI_API_KEY)
-                model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash",
-                    system_instruction=system_prompt
-                )
-                response = model.generate_content(
-                    user_prompt,
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.0,
-                        max_output_tokens=300,
-                    )
-                )
-                return response.text or ""
+            if provider == "gemini" or (config.GEMINI_API_KEY and not config.GROQ_API_KEY and not config.OPENAI_API_KEY):
+                return self._call_gemini(system_prompt, user_prompt)
 
             elif provider == "groq" and config.GROQ_API_KEY:
                 from groq import Groq
@@ -149,11 +204,10 @@ class ContentSafetyAnalyzer:
                     )
                     return completion.choices[0].message.content or ""
                 except Exception as groq_err:
-                    # Retry once with guaranteed working model
-                    if model_name != "llama-3.1-8b-instant":
-                        logger.warning(f"Groq failed with {model_name} ({groq_err}), retrying with llama-3.1-8b-instant...")
+                    if model_name != "qwen/qwen3.6-27b":
+                        logger.warning(f"Groq failed with {model_name} ({groq_err}), retrying with qwen/qwen3.6-27b...")
                         completion = client.chat.completions.create(
-                            model="llama-3.1-8b-instant",
+                            model="qwen/qwen3.6-27b",
                             messages=[
                                 {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": user_prompt},
@@ -183,8 +237,9 @@ class ContentSafetyAnalyzer:
                     raise ValueError(f"{provider.upper()} API key is not configured")
                     
                 client = openai.OpenAI(api_key=api_key, base_url=base_url)
+                eff_model = model_name if provider != "openai" or "gpt" in model_name else "gpt-4o-mini"
                 completion = client.chat.completions.create(
-                    model=model_name if provider != "openai" or "gpt" in model_name else "gpt-4o-mini",
+                    model=eff_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
@@ -196,36 +251,14 @@ class ContentSafetyAnalyzer:
                 return completion.choices[0].message.content or ""
                 
             elif provider == "gemini" or config.GEMINI_API_KEY:
-                import google.generativeai as genai
-                if not config.GEMINI_API_KEY:
-                    raise ValueError("GEMINI_API_KEY is not configured")
-                genai.configure(api_key=config.GEMINI_API_KEY)
-                model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash",
-                    system_instruction=system_prompt
-                )
-                response = model.generate_content(
-                    user_prompt,
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.0,
-                        max_output_tokens=300,
-                    )
-                )
-                return response.text or ""
+                return self._call_gemini(system_prompt, user_prompt)
             else:
                 raise ValueError(f"Unsupported LLM provider: {provider}")
         except Exception as err:
             # Fallback to Gemini if key exists
             if config.GEMINI_API_KEY:
                 logger.warning(f"Primary LLM safety check failed ({err}), trying Gemini fallback...")
-                import google.generativeai as genai
-                genai.configure(api_key=config.GEMINI_API_KEY)
-                model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash",
-                    system_instruction=system_prompt
-                )
-                response = model.generate_content(user_prompt)
-                return response.text or ""
+                return self._call_gemini(system_prompt, user_prompt)
             raise err
 
     def run_llm_scan(self, text: str) -> Tuple[str, List[str], str]:
@@ -280,16 +313,34 @@ class ContentSafetyAnalyzer:
                 cleaned = re.sub(r"\n```$", "", cleaned)
                 cleaned = cleaned.strip()
             
-            # Find boundaries of JSON
+            data = {}
             start = cleaned.find("{")
             end = cleaned.rfind("}")
-            if start != -1 and end != -1:
-                cleaned = cleaned[start:end+1]
+            if start != -1 and end != -1 and start < end:
+                json_str = cleaned[start:end+1]
+                try:
+                    data = json.loads(json_str)
+                except Exception:
+                    data = {}
                 
-            data = json.loads(cleaned)
-            risk_score = data.get("risk_score", "Reject")
+            risk_score = data.get("risk_score")
             categories = data.get("categories_detected", [])
-            reason = data.get("reason", "No reason provided by LLM safety scanner.")
+            reason = data.get("reason", "")
+
+            if not risk_score:
+                lower_text = response_text.lower()
+                if "reject" in lower_text:
+                    risk_score = "Reject"
+                elif "high risk" in lower_text:
+                    risk_score = "High Risk"
+                elif "medium risk" in lower_text:
+                    risk_score = "Medium Risk"
+                elif "low risk" in lower_text:
+                    risk_score = "Low Risk"
+                else:
+                    risk_score = "Safe"
+                reason = reason or (response_text[:200] if response_text else "LLM output unparseable")
+
             return risk_score, categories, reason
         except Exception as e:
             logger.warning(f"LLM content safety check failed: {e}. Traceback: {traceback.format_exc()}")
