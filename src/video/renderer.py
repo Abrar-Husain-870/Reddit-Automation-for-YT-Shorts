@@ -8,7 +8,7 @@ from typing import List, Tuple, Dict
 import config
 from src.logger import logger
 
-RENDER_TIMEOUT = 600
+RENDER_TIMEOUT = 1200
 FFPROBE_TIMEOUT = 60
 
 # Palette color schemes (ASS colors are in format &HAAABBBCC, where AA is alpha, BB is blue, GG is green, RR is red)
@@ -236,7 +236,7 @@ def render_short(
         "-map", "1:a",
         "-c:v", "libx264",
         "-r", str(config.RENDER_FPS),
-        "-preset", "medium",
+        "-preset", "veryfast",
         "-crf", "18",
         "-profile:v", "high",
         "-level", "4.2",
