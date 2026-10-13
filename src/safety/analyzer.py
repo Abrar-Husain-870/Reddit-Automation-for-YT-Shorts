@@ -204,10 +204,10 @@ class ContentSafetyAnalyzer:
                     )
                     return completion.choices[0].message.content or ""
                 except Exception as groq_err:
-                    if model_name != "qwen/qwen3.6-27b":
-                        logger.warning(f"Groq failed with {model_name} ({groq_err}), retrying with qwen/qwen3.6-27b...")
+                    if model_name != "llama-3.3-70b-versatile":
+                        logger.warning(f"Groq failed with {model_name} ({groq_err}), retrying with llama-3.3-70b-versatile...")
                         completion = client.chat.completions.create(
-                            model="qwen/qwen3.6-27b",
+                            model="llama-3.3-70b-versatile",
                             messages=[
                                 {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": user_prompt},

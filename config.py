@@ -103,12 +103,12 @@ if (
     not LLM_MODEL 
     or any(m in LLM_MODEL.lower() for m in deprecated_gemini_models) 
     or (LLM_PROVIDER == "gemini" and "gemini" not in LLM_MODEL.lower()) 
-    or (LLM_PROVIDER == "groq" and ("llama-3.1" in LLM_MODEL.lower() or "8192" in LLM_MODEL.lower() or not LLM_MODEL))
+    or (LLM_PROVIDER == "groq" and ("8192" in LLM_MODEL.lower() or not LLM_MODEL or "qwen" in LLM_MODEL.lower()))
 ):
     if LLM_PROVIDER == "gemini":
         LLM_MODEL = "gemini-3.6-flash"
     elif LLM_PROVIDER == "groq":
-        LLM_MODEL = "qwen/qwen3.6-27b"
+        LLM_MODEL = "llama-3.3-70b-versatile"
     elif LLM_PROVIDER == "deepseek":
         LLM_MODEL = "deepseek-chat"
     elif LLM_PROVIDER == "openai":

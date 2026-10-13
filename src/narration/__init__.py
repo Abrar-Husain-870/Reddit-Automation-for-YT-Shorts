@@ -52,11 +52,39 @@ def generate_script_with_fallback(
             raise ValueError("Generated script is too short or empty")
             
     except Exception as e:
-        logger.warning(f"LLM script generation failed ({e}). Using local regex cleanup fallback.")
+        logger.warning(f"Primary LLM script generation failed ({e}). Attempting secondary LLM fallback...")
+        
+        # Secondary fallback: try Gemini if primary was not Gemini and GEMINI_API_KEY is available
+        if config.LLM_PROVIDER != "gemini" and config.GEMINI_API_KEY:
+            try:
+                from src.narration.gemini import GeminiProvider
+                logger.info("Attempting Gemini fallback for script generation...")
+                parsed = GeminiProvider().generate_narration(post, mode, style)
+                if parsed and parsed.get("narration") and len(parsed["narration"].split()) >= 15:
+                    return parsed
+            except Exception as ge:
+                logger.warning(f"Gemini script fallback failed: {ge}")
+
+        # Secondary fallback: try OpenAI if OPENAI_API_KEY is available
+        if config.LLM_PROVIDER != "openai" and config.OPENAI_API_KEY:
+            try:
+                from src.narration.openai_like import OpenAILikeProvider
+                logger.info("Attempting OpenAI fallback for script generation...")
+                parsed = OpenAILikeProvider().generate_narration(post, mode, style)
+                if parsed and parsed.get("narration") and len(parsed["narration"].split()) >= 15:
+                    return parsed
+            except Exception as oe:
+                logger.warning(f"OpenAI script fallback failed: {oe}")
+
+        logger.warning("All LLM providers failed. Using local regex cleanup fallback.")
         
         # Local fallback: read the post naturally by cleaning it up
+        import re
+        raw_selftext = re.sub(r'submitted by\s+/u/\S+.*', '', post.selftext, flags=re.IGNORECASE)
+        raw_selftext = re.sub(r'\[(?:link|comments)\]', '', raw_selftext, flags=re.IGNORECASE).strip()
+        
         clean_title = strip_markdown(strip_emojis(post.title))
-        clean_body = strip_markdown(strip_emojis(post.selftext))
+        clean_body = strip_markdown(strip_emojis(raw_selftext))
         
         # Truncate content to fit 45-90 seconds (approx 120-150 words)
         words = f"{clean_title}. {clean_body}".split()

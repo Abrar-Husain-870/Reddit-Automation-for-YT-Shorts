@@ -75,7 +75,7 @@ jobs:
 
       # ── 4. Python Dependencies ───────────────────────────────────────────────
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        run: pip install --upgrade -r requirements.txt
 
       # ── 5. Restore Background Clips Cache ───────────────────────────────────
       # Caches downloaded & sliced background clips between runs.

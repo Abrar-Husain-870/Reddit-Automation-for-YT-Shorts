@@ -83,10 +83,16 @@ def _fetch_anonymous_json(subreddit: str, sort: str, time_filter: str) -> List[d
     for attempt in range(max_retries):
         try:
             response = session_client.get(url, params=params, headers=DEFAULT_HEADERS, timeout=15)
-            if response.status_code in (429, 403):
+            if response.status_code == 403:
+                logger.warning(
+                    f"Public Reddit JSON API blocked (HTTP 403 Forbidden). "
+                    f"Switching immediately to RSS fallback for r/{subreddit}."
+                )
+                break
+            if response.status_code == 429:
                 wait_seconds = (attempt + 1) * 3
                 logger.warning(
-                    f"Public Reddit API fetch returned status {response.status_code} for r/{subreddit}. "
+                    f"Public Reddit API rate limited (429) for r/{subreddit}. "
                     f"Retrying in {wait_seconds}s (Attempt {attempt + 1}/{max_retries})..."
                 )
                 time.sleep(wait_seconds)
@@ -215,7 +221,11 @@ def _fetch_with_rss(subreddit: str) -> List[dict]:
                 
                 extractor = HTMLTextExtractor()
                 extractor.feed(html_content)
-                selftext = extractor.get_text().strip()
+                raw_extracted = extractor.get_text().strip()
+                import re
+                clean_selftext = re.sub(r'submitted by\s+/u/\S+.*', '', raw_extracted, flags=re.IGNORECASE)
+                clean_selftext = re.sub(r'\[(?:link|comments)\]', '', clean_selftext, flags=re.IGNORECASE).strip()
+                selftext = clean_selftext or title
                 
                 # RSS has no score/comments. Fake values above config minimums to pass filters.
                 posts.append({
